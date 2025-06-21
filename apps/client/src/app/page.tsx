@@ -12,6 +12,7 @@ import { Search, Plus } from "lucide-react"
 import { Anton } from "next/font/google"
 import Link from "next/link"
 import {useUser} from "@civic/auth/react"
+import { WalletConnectButton } from "@/components/WalletProvider"
 
 const anton = Anton({
   weight: "400",
@@ -131,7 +132,8 @@ export default function SolanaStakingPlatform() {
                 className="pl-10 w-64 bg-neutral-900 border-gray-700 text-white rounded-full placeholder-gray-400"
               />
             </div>
-            <div>
+            <div className="flex items-center justify-center space-x-2" >
+              <WalletConnectButton/>
               <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
                 <DialogTrigger asChild>
                   <Button className="rounded-full bg-green-500 hover:bg-green-600 text-black font-medium flex items-center gap-2 px-6 py-2">

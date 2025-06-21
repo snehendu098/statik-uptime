@@ -9,6 +9,8 @@
     "lint": "next lint"
   },
   "dependencies": {
+    "@aptos-labs/ts-sdk": "^2.0.1",
+    "@aptos-labs/wallet-adapter-react": "^6.1.2",
     "@civic/auth": "^0.8.0",
     "@radix-ui/react-dialog": "^1.1.14",
     "@radix-ui/react-label": "^2.1.7",
@@ -22,7 +24,8 @@
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "recharts": "^2.15.4",
-    "tailwind-merge": "^3.3.1"
+    "tailwind-merge": "^3.3.1",
+    "db": "workspace:*"
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3",

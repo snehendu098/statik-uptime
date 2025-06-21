@@ -4,6 +4,7 @@ import { Inter } from "next/font/google"
 import "./globals.css"
 import { ThemeProvider } from "@/components/theme-provider"
 import { CivicAuthProvider } from "@civic/auth/nextjs"
+import WalletProvider from "@/components/WalletProvider"
 
 const inter = Inter({ subsets: ["latin"] })
 
@@ -22,7 +23,9 @@ export default function RootLayout({
       <body className={inter.className}>
         <ThemeProvider attribute="class" defaultTheme="dark" enableSystem disableTransitionOnChange>
          <CivicAuthProvider>
+          <WalletProvider>
           {children}
+          </WalletProvider>
           </CivicAuthProvider> 
         </ThemeProvider>
       </body>
