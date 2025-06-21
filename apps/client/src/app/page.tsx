@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
@@ -11,7 +11,8 @@ import { Navbar } from "@/components/navbar"
 import { Search, Plus } from "lucide-react"
 import { Anton } from "next/font/google"
 import Link from "next/link"
-import {useUser} from "@civic/auth/react"
+import { useUser } from "@civic/auth/react"
+import { useWallet } from "@aptos-labs/wallet-adapter-react"
 import { WalletConnectButton } from "@/components/WalletProvider"
 
 const anton = Anton({
@@ -78,23 +79,48 @@ const monitorData = [
   },
 ]
 
-
-
 export default function SolanaStakingPlatform() {
   const [searchQuery, setSearchQuery] = useState("")
   const [isDialogOpen, setIsDialogOpen] = useState(false)
   const [websiteUrl, setWebsiteUrl] = useState("")
   const [checkInterval, setCheckInterval] = useState("")
 
-  const {user} = useUser()
+  const { user } = useUser()
+  const { connected, account } = useWallet()
+  const walletAddress = account?.address?.toString()
 
-  const handleAddWebsite = () => {
-    // Handle form submission here
-    console.log("Adding website:", { websiteUrl, checkInterval })
+  const handleAddWebsite = async () => {
+    if (!websiteUrl || !user?.email) {
+      return;
+    }
+    try {
+      const response = await fetch("/api/websiteadd", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ url: websiteUrl, email: user.email }),
+      });
+      const data = await response.json();
+      console.log("Website add response:", data);
+    } catch (error) {
+      console.error("Error adding website:", error);
+    }
     setIsDialogOpen(false)
     setWebsiteUrl("")
     setCheckInterval("")
   }
+
+  // Effect to POST to /api/login when both wallet and civic auth are connected
+  useEffect(() => {
+    if (user?.email && connected && walletAddress) {
+      fetch("/api/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: user.email, wallet: walletAddress }),
+      })
+
+      console.log("hello")
+    }
+  }, [user?.email, connected, walletAddress])
 
   return (
     <div className="min-h-screen bg-black text-white">
