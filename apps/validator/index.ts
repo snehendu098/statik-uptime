@@ -6,7 +6,7 @@ const CALLBACKS: {[callbackId: string]: (data: SignupOutgoingMessage) => void} =
 let validatorId: string | null = null;
 
 async function main() {
-    const publicKey = "your-public-key-here"; // Replace with your actual public key
+    const publicKey = "pubkey"; // Replace with your actual public key
     const ws = new WebSocket("ws://localhost:8081");
 
     ws.onmessage = async (event) => {
@@ -24,7 +24,6 @@ async function main() {
         CALLBACKS[callbackId] = (data: SignupOutgoingMessage) => {
             validatorId = data.validatorId;
         }
-        
 
         ws.send(JSON.stringify({
             type: 'signup',

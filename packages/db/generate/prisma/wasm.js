@@ -115,14 +115,18 @@ Prisma.NullTypes = {
 
 exports.Prisma.UserScalarFieldEnum = {
   id: 'id',
-  email: 'email'
+  email: 'email',
+  credits: 'credits'
 };
 
 exports.Prisma.WebsiteScalarFieldEnum = {
   id: 'id',
   url: 'url',
   userId: 'userId',
-  disabled: 'disabled'
+  disabled: 'disabled',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt',
+  lastCheckedAt: 'lastCheckedAt'
 };
 
 exports.Prisma.ValidatorScalarFieldEnum = {
@@ -139,7 +143,8 @@ exports.Prisma.WebsiteTickScalarFieldEnum = {
   validatorId: 'validatorId',
   createdAt: 'createdAt',
   status: 'status',
-  latency: 'latency'
+  latency: 'latency',
+  statusCode: 'statusCode'
 };
 
 exports.Prisma.SortOrder = {

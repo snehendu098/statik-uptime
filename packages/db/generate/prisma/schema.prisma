@@ -15,20 +15,26 @@ datasource db {
 }
 
 model User {
-  id    String @id @default(uuid()) @map("_id") @db.ObjectId
-  email String
+  id       String    @id @default(uuid()) @map("_id")
+  email    String
+  credits  Int       @default(0)
+  websites Website[]
 }
 
 model Website {
-  id       String        @id @default(uuid()) @map("_id") @db.ObjectId
-  url      String
-  userId   String
-  ticks    WebsiteTick[]
-  disabled Boolean       @default(false)
+  id            String        @id @default(uuid()) @map("_id")
+  url           String
+  userId        String
+  ticks         WebsiteTick[]
+  disabled      Boolean       @default(false)
+  user          User          @relation(fields: [userId], references: [id])
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+  lastCheckedAt DateTime      @default(now())
 }
 
 model Validator {
-  id             String        @id @default(uuid()) @map("_id") @db.ObjectId
+  id             String        @id @default(uuid()) @map("_id")
   publicKey      String
   location       String
   ip             String
@@ -37,12 +43,13 @@ model Validator {
 }
 
 model WebsiteTick {
-  id          String        @id @default(uuid()) @map("_id") @db.ObjectId
-  websiteId   String        @db.ObjectId
-  validatorId String        @db.ObjectId
+  id          String        @id @default(uuid()) @map("_id")
+  websiteId   String
+  validatorId String
   createdAt   DateTime
   status      WebsiteStatus
   latency     Float
+  statusCode  Int
   website     Website       @relation(fields: [websiteId], references: [id])
   validator   Validator     @relation(fields: [validatorId], references: [id])
 }

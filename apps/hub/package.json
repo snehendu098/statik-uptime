@@ -14,5 +14,10 @@
     "@solana/kit": "^2.1.0",
     "@solana/web3.js": "^1.98.0",
     "tweetnacl": "^1.0.3"
+  },
+  "scripts": {
+    "dev": "bun index.ts",
+    "build": "npx tsc -b",
+    "start": "bun ./dist/index.js"
   }
 }

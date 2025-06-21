@@ -5,7 +5,7 @@ import { prismaClient } from "db/client";
 const availableValidators: { validatorId: string, socket: ServerWebSocket<unknown>, publicKey: string }[] = [];
 
 const CALLBACKS : { [callbackId: string]: (data: IncomingMessage) => void } = {}
-const COST_PER_VALIDATION = 100; // in lamports
+const COST_PER_VALIDATION = 100;
 
 Bun.serve({
     fetch(req, server) {
@@ -17,7 +17,11 @@ Bun.serve({
     port: 8081,
     websocket: {
         async message(ws: ServerWebSocket<unknown>, message: string) {
+
+            console.log(message)
+
             const data: IncomingMessage = JSON.parse(message);
+
             
             if (data.type === 'signup') {
 
@@ -30,6 +34,9 @@ Bun.serve({
         },
         async close(ws: ServerWebSocket<unknown>) {
             availableValidators.splice(availableValidators.findIndex(v => v.socket === ws), 1);
+        },
+        async open(ws: ServerWebSocket<unknown>) {
+            console.log("New connection established");
         }
     },
 });
@@ -83,6 +90,9 @@ async function signupHandler(ws: ServerWebSocket<unknown>, { ip, publicKey, call
 }
 
 setInterval(async () => {
+
+    console.log("websites")
+
     const websitesToMonitor = await prismaClient.website.findMany({
         where: {
             disabled: false,
