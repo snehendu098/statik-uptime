@@ -15,41 +15,53 @@ datasource db {
 }
 
 model User {
-  id            String      @id @default(uuid()) @map("_id") @db.ObjectId
-  email         String      @unique
+  id            String   @id @default(uuid()) @map("_id") @db.ObjectId
+  email         String   @unique
+  role          Int      @default(0)
   walletAddress String?
-  createdAt     DateTime    @default(now())
-  updatedAt     DateTime    @updatedAt
-  validators    Validator[]
-  role          Int         @default(0)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  xp            Int      @default(0)
+
+  // relations
+  validators Validator[]
+  websites   Website[]
 }
 
 model Website {
-  id       String  @id @default(uuid()) @map("_id") @db.ObjectId
-  url      String
-  userId   String  @db.ObjectId
-  disabled Boolean @default(false)
-  ticks    Tick[]
+  id        String    @id @default(uuid()) @map("_id") @db.ObjectId
+  url       String
+  userId    String    @db.ObjectId
+  disabled  Boolean   @default(false)
+  interval  Int       @default(60)
+  lastCheck DateTime?
+
+  // relations
+  ticks Tick[]
+  user  User   @relation(fields: [userId], references: [id])
 }
 
 model Validator {
   id        String   @id @default(uuid()) @map("_id") @db.ObjectId
   userId    String   @db.ObjectId
-  websiteId String
-  status    String
+  location  String
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
-  user      User     @relation(fields: [userId], references: [id])
-  ticks     Tick[]
+
+  // relations
+  ticks Tick[]
+  user  User   @relation(fields: [userId], references: [id])
 }
 
 model Tick {
-  id          String    @id @default(uuid()) @map("_id") @db.ObjectId
-  websiteId   String    @db.ObjectId
-  validatorId String    @db.ObjectId
+  id          String   @id @default(uuid()) @map("_id") @db.ObjectId
+  websiteId   String   @db.ObjectId
+  validatorId String   @db.ObjectId
   url         String
   statusCode  Int
-  createdAt   DateTime  @default(now())
-  website     Website   @relation(fields: [websiteId], references: [id])
-  validator   Validator @relation(fields: [validatorId], references: [id])
+  createdAt   DateTime @default(now())
+
+  // relations
+  website   Website   @relation(fields: [websiteId], references: [id])
+  validator Validator @relation(fields: [validatorId], references: [id])
 }
