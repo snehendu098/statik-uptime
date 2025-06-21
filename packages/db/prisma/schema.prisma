@@ -24,8 +24,7 @@ model User {
   xp            Int      @default(0)
 
   // relations
-  validators Validator[]
-  websites   Website[]
+  websites Website[]
 }
 
 model Website {
@@ -43,15 +42,12 @@ model Website {
 
 model Validator {
   id        String   @id @default(uuid()) @map("_id") @db.ObjectId
-  userId    String   @db.ObjectId
   ip        String
-  location  String
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   // relations
   ticks Tick[]
-  user  User   @relation(fields: [userId], references: [id])
 }
 
 model Tick {
@@ -59,6 +55,9 @@ model Tick {
   websiteId   String   @db.ObjectId
   validatorId String   @db.ObjectId
   url         String
+  location    String
+  ip          String
+  latency     Int
   statusCode  Int
   createdAt   DateTime @default(now())
 
