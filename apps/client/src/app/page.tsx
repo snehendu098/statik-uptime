@@ -92,7 +92,7 @@ export default function SolanaStakingPlatform() {
   const handleAddWebsite = async () => {
     if (!websiteUrl || !user?.email) {
       return;
-    }
+    } 
     try {
       const response = await fetch("/api/websiteadd", {
         method: "POST",
