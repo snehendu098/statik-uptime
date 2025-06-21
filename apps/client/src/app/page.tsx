@@ -11,6 +11,7 @@ import { Navbar } from "@/components/navbar"
 import { Search, Plus } from "lucide-react"
 import { Anton } from "next/font/google"
 import Link from "next/link"
+import {useUser} from "@civic/auth/react"
 
 const anton = Anton({
   weight: "400",
@@ -76,11 +77,15 @@ const monitorData = [
   },
 ]
 
+
+
 export default function SolanaStakingPlatform() {
   const [searchQuery, setSearchQuery] = useState("")
   const [isDialogOpen, setIsDialogOpen] = useState(false)
   const [websiteUrl, setWebsiteUrl] = useState("")
   const [checkInterval, setCheckInterval] = useState("")
+
+  const {user} = useUser()
 
   const handleAddWebsite = () => {
     // Handle form submission here
@@ -94,12 +99,16 @@ export default function SolanaStakingPlatform() {
     <div className="min-h-screen bg-black text-white">
       <Navbar />
 
+      {user?.email ? (
+      <>
       {/* Hero Section */}
       <div className="relative px-6 py-20">
         <div className="max-w-7xl mx-auto">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
             <div>
-              <h1 className={`text-7xl font-bold leading-tight ${anton.className}`}>HELLO, USERNAME</h1>
+              <h1 className={`text-7xl font-bold leading-tight ${anton.className}`}>
+                HELLO {user?.name?.toLocaleUpperCase() || "User"}!
+              </h1>
               <p className="text-gray-400 text-lg mt-4">
                 Monitor your websites and get instant alerts when they go down
               </p>
@@ -252,6 +261,26 @@ export default function SolanaStakingPlatform() {
           </div>
         </div>
       </div>
+      </>
+      ) : (
+        <div className="relative px-6 py-20">
+        <div className="max-w-7xl mx-auto">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
+            <div>
+              <h1 className={`text-7xl font-bold leading-tight ${anton.className} uppercase`}>
+                Kindly Login to Proceed
+              </h1>
+              <p className="text-gray-400 text-lg mt-4">
+                Monitor your websites and get instant alerts when they go down
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+      )
+      
+      }
+
     </div>
   )
 }

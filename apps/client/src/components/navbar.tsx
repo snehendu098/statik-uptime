@@ -1,6 +1,7 @@
 "use client"
 
 import { Button } from "@/components/ui/button"
+import { UserButton } from "@civic/auth/react"
 
 export function Navbar() {
   return (
@@ -19,6 +20,7 @@ export function Navbar() {
           <span className="text-sm font-medium text-white">1,250 Credits</span>
         </div>
         <Button className="bg-green-500 hover:bg-green-600 rounded-full text-black font-medium">Upgrade</Button>
+        <UserButton/>
       </div>
     </nav>
   )
