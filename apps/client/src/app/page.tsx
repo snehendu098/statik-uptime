@@ -14,93 +14,55 @@ import Link from "next/link"
 import { useUser } from "@civic/auth/react"
 import { useWallet } from "@aptos-labs/wallet-adapter-react"
 import { WalletConnectButton } from "@/components/WalletProvider"
+import axios from "axios"
 
 const anton = Anton({
   weight: "400",
   subsets: ["latin"],
 })
 
-const monitorData = [
-  {
-    rank: 1,
-    id: "example-com",
-    url: "https://example.com",
-    status: "Active",
-    lastChecked: "2 min ago",
-    uptime: "99.9%",
-  },
-  {
-    rank: 2,
-    id: "mystore-com",
-    url: "https://mystore.com",
-    status: "Active",
-    lastChecked: "1 min ago",
-    uptime: "98.7%",
-  },
-  {
-    rank: 3,
-    id: "blog-website-com",
-    url: "https://blog.website.com",
-    status: "Down",
-    lastChecked: "5 min ago",
-    uptime: "95.2%",
-  },
-  {
-    rank: 4,
-    id: "api-service-com",
-    url: "https://api.service.com",
-    status: "Active",
-    lastChecked: "3 min ago",
-    uptime: "99.5%",
-  },
-  {
-    rank: 5,
-    id: "dashboard-app-com",
-    url: "https://dashboard.app.com",
-    status: "Active",
-    lastChecked: "1 min ago",
-    uptime: "97.8%",
-  },
-  {
-    rank: 6,
-    id: "portfolio-dev-com",
-    url: "https://portfolio.dev.com",
-    status: "Active",
-    lastChecked: "4 min ago",
-    uptime: "99.1%",
-  },
-  {
-    rank: 7,
-    id: "ecommerce-shop-com",
-    url: "https://ecommerce.shop.com",
-    status: "Down",
-    lastChecked: "7 min ago",
-    uptime: "92.3%",
-  },
-]
-
 export default function SolanaStakingPlatform() {
   const [searchQuery, setSearchQuery] = useState("")
   const [isDialogOpen, setIsDialogOpen] = useState(false)
   const [websiteUrl, setWebsiteUrl] = useState("")
   const [checkInterval, setCheckInterval] = useState("")
+  const [websites, setWebsites] = useState<any[]>([])
 
   const { user } = useUser()
   const { connected, account } = useWallet()
   const walletAddress = account?.address?.toString()
+
+    const fetchWebsites = async () => {
+      if (user?.email && user?.id) {
+        try {
+          const response = await fetch("/api/website", {
+            headers: {
+              "user-id": user.id
+            }
+          });
+          if (response.ok) {
+            const data = await response.json();
+            setWebsites(Array.isArray(data) ? data : [data]);
+          }
+        } catch (err) {
+          console.error("Failed to fetch websites", err);
+        }
+      }
+    };
 
   const handleAddWebsite = async () => {
     if (!websiteUrl || !user?.email) {
       return;
     } 
     try {
-      const response = await fetch("/api/websiteadd", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ url: websiteUrl, email: user.email }),
+      const response = await axios.post("/api/websiteadd", {
+        url: websiteUrl,
+        email: user.email,
       });
-      const data = await response.json();
+
+      const {data} = response
       console.log("Website add response:", data);
+      fetchWebsites()
     } catch (error) {
       console.error("Error adding website:", error);
     }
@@ -115,12 +77,19 @@ export default function SolanaStakingPlatform() {
       fetch("/api/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email: user.email, wallet: walletAddress }),
+        body: JSON.stringify({ email: user.email, wallet: walletAddress, id: user?.id }),
       })
 
       console.log("hello")
     }
   }, [user?.email, connected, walletAddress])
+
+
+
+  useEffect(() => {
+    
+    fetchWebsites();
+  }, [user?.id, user?.email]);
 
   return (
     <div className="min-h-screen bg-black text-white">
@@ -250,11 +219,11 @@ export default function SolanaStakingPlatform() {
             </div>
 
             <div className="divide-y divide-gray-800">
-              {monitorData.map((item) => (
-                <Link key={item.rank} href={`/${item.id}`}>
+              {websites.map((item, idx) => (
+                <Link key={item.id || idx} href={`/${item.id}`}>
                   <div className="px-6 py-5 hover:bg-gray-800/50 transition-colors cursor-pointer">
                     <div className="grid grid-cols-12 gap-4 items-center">
-                      <div className="col-span-1 text-gray-300 font-medium">{item.rank}</div>
+                      <div className="col-span-1 text-gray-300 font-medium">{idx + 1}</div>
 
                       <div className="col-span-4 flex items-center space-x-3">
                         <div className="min-w-0">
@@ -264,22 +233,19 @@ export default function SolanaStakingPlatform() {
 
                       <div className="col-span-2">
                         <Badge
-                          className={`${
-                            item.status === "Active"
-                              ? "bg-green-500/20 text-green-400 border-green-500/30"
-                              : "bg-red-500/20 text-red-400 border-red-500/30"
-                          } border`}
+                          className={`bg-green-500/20 text-green-400 border-green-500/30 border`}
                         >
-                          {item.status}
+                          Active
                         </Badge>
                       </div>
 
                       <div className="col-span-3">
-                        <span className="text-gray-400 text-sm">{item.lastChecked}</span>
+                        {/* last checked */}
+                        <span className="text-gray-400 text-sm">Just now</span>
                       </div>
 
                       <div className="col-span-2 text-right">
-                        <span className="font-bold text-white text-lg">{item.uptime}</span>
+                        <span className="font-bold text-white text-lg">99.5%</span>
                       </div>
                     </div>
                   </div>

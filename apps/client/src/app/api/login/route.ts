@@ -2,7 +2,7 @@ import {prismaClient} from "db/client"
 
 export const POST = async (req: Request) => {
 
-    const { email } = await req.json();
+    const { email, id } = await req.json();
 
     const user = await prismaClient.user.findFirst({
         where: {
@@ -13,7 +13,8 @@ export const POST = async (req: Request) => {
     if (!user) {
         await prismaClient.user.create({
             data: {
-                email: email
+                email: email,
+                id: id
             }
         })
         return new Response(JSON.stringify({
