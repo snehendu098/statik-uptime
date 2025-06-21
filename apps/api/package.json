@@ -1,20 +1,22 @@
 {
   "name": "api",
-  "version": "1.0.0",
-  "description": "",
-  "main": "index.js",
-  "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
-  },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
+  "module": "index.ts",
+  "type": "module",
   "devDependencies": {
-    "@types/node": "^22.15.3",
-    "typescript": "^5.8.3"
+    "@types/bun": "latest"
+  },
+  "peerDependencies": {
+    "typescript": "^5.0.0"
   },
   "dependencies": {
-    "db": "workspace:*",
-    "express": "^5.1.0"
+    "@solana/web3.js": "^1.98.0",
+    "@types/cors": "^2.8.17",
+    "@types/express": "^5.0.0",
+    "@types/jsonwebtoken": "^9.0.9",
+    "cors": "^2.8.5",
+    "db": "*",
+    "express": "^4.21.2",
+    "jsonwebtoken": "^9.0.2",
+    "jwt": "^0.2.0"
   }
 }

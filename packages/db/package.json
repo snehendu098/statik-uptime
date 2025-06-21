@@ -1,21 +1,21 @@
 {
   "name": "db",
-  "version": "1.0.0",
-  "description": "",
-  "main": "index.js",
-  "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
-  },
+  "module": "index.ts",
+  "type": "module",
   "exports": {
-    ".": "./src/index.ts"
+    "./client": "./src/index.ts"
   },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
+  "devDependencies": {
+    "@types/bun": "latest"
+  },
+  "peerDependencies": {
+    "typescript": "^5.0.0"
+  },
   "dependencies": {
-    "@prisma/client": "^6.10.1",
-    "@types/node": "^22.15.3",
-    "prisma": "^6.10.1",
-    "typescript": "^5.8.3"
+    "@prisma/client": "6.10.1",
+    "prisma": "^6.5.0"
+  },
+  "prisma": {
+    "seed": "./prisma/seed.ts"
   }
 }
