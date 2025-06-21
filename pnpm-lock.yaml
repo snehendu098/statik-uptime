@@ -34,7 +34,16 @@ importers:
         specifier: ^5.8.3
         version: 5.8.3
 
-  apps/docs:
+  apps/hub-server:
+    devDependencies:
+      '@types/node':
+        specifier: ^22.15.3
+        version: 22.15.3
+      typescript:
+        specifier: ^5.8.3
+        version: 5.8.3
+
+  apps/user-client:
     dependencies:
       '@repo/ui':
         specifier: workspace:*
@@ -71,25 +80,7 @@ importers:
         specifier: 5.8.2
         version: 5.8.2
 
-  apps/hub:
-    devDependencies:
-      '@types/node':
-        specifier: ^22.15.3
-        version: 22.15.3
-      typescript:
-        specifier: ^5.8.3
-        version: 5.8.3
-
-  apps/validator:
-    devDependencies:
-      '@types/node':
-        specifier: ^22.15.3
-        version: 22.15.3
-      typescript:
-        specifier: ^5.8.3
-        version: 5.8.3
-
-  apps/web:
+  apps/validator-client:
     dependencies:
       '@repo/ui':
         specifier: workspace:*
@@ -125,6 +116,15 @@ importers:
       typescript:
         specifier: 5.8.2
         version: 5.8.2
+
+  apps/validator-server:
+    devDependencies:
+      '@types/node':
+        specifier: ^22.15.3
+        version: 22.15.3
+      typescript:
+        specifier: ^5.8.3
+        version: 5.8.3
 
   packages/db:
     dependencies:
@@ -1998,11 +1998,6 @@ packages:
 
   semver@7.6.2:
     resolution: {integrity: sha512-FNAIBWCx9qcRhoHcgcJ0gvU7SN1lYU2ZXuSfl04bSC5OpvDHFyJCjdNHomPXxjQlCBU67YW64PzY7/VIEH7F2w==}
-    engines: {node: '>=10'}
-    hasBin: true
-
-  semver@7.7.1:
-    resolution: {integrity: sha512-hlq8tAfn0m/61p4BVRcPzIGr6LKiMwo4VM6dGi6pt4qcRkmNzTcWq6eCEjEh+qXjkMDvPlOFFSGwQjoEa6gyMA==}
     engines: {node: '>=10'}
     hasBin: true
 
@@ -4469,9 +4464,6 @@ snapshots:
 
   semver@7.6.2: {}
 
-  semver@7.7.1:
-    optional: true
-
   semver@7.7.2: {}
 
   send@1.2.0:
@@ -4532,7 +4524,7 @@ snapshots:
     dependencies:
       color: 4.2.3
       detect-libc: 2.0.3
-      semver: 7.7.1
+      semver: 7.7.2
     optionalDependencies:
       '@img/sharp-darwin-arm64': 0.34.1
       '@img/sharp-darwin-x64': 0.34.1
