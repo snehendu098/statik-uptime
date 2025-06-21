@@ -1,4 +1,4 @@
-import { randomUUIDv7, type ServerWebSocket } from "bun";
+import { connect, randomUUIDv7, type ServerWebSocket } from "bun";
 import type { IncomingMessage, SignupIncomingMessage } from "common/types";
 import { prismaClient } from "db/client";
 
@@ -115,24 +115,32 @@ setInterval(async () => {
                 if (data.type === 'validate') {
                     const { validatorId, status, latency, statusCode } = data.data;
 
-                    await prismaClient.$transaction(async (tx:any) => {
-                        await tx.websiteTick.create({
-                            data: {
-                                websiteId: website.id,
-                                validatorId,
-                                status,
-                                latency,
-                                createdAt: new Date(),
-                                statusCode: statusCode
-                            },
-                        });
+                    console.log("data", data);
 
-                        await tx.validator.update({
-                            where: { id: validatorId },
-                            data: {
-                                pendingPayouts: { increment: COST_PER_VALIDATION },
+                    await prismaClient.websiteTick.create({
+                        data: {
+                            status,
+                            latency,
+                            createdAt: new Date(),
+                            statusCode: statusCode,
+                            website: {
+                                connect: {
+                                    id: website.id
+                                }
                             },
-                        });
+                            validator: {
+                                connect: {
+                                    id: validatorId,
+                                }
+                            }
+                        },
+                    });
+
+                    await prismaClient.validator.update({
+                        where: { id: validatorId },
+                        data: {
+                            pendingPayouts: { increment: COST_PER_VALIDATION },
+                        },
                     });
                 }
             };
