@@ -220,7 +220,7 @@ export default function SolanaStakingPlatform() {
 
             <div className="divide-y divide-gray-800">
               {websites.map((item, idx) => (
-                <Link key={item.id || idx} href={`/${item.id}`}>
+                <Link key={item.id || idx} href={`/logs/${item.id}`}>
                   <div className="px-6 py-5 hover:bg-gray-800/50 transition-colors cursor-pointer">
                     <div className="grid grid-cols-12 gap-4 items-center">
                       <div className="col-span-1 text-gray-300 font-medium">{idx + 1}</div>
