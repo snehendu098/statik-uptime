@@ -100,7 +100,6 @@ export default function WalletProvider({ children, ...props }: WalletProviderPro
       }}
     >
       {children}
-      <WalletConnectButton {...props} />
     </AptosWalletAdapterProvider>
   );
 }
