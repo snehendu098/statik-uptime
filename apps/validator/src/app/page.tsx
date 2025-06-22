@@ -360,7 +360,7 @@ export default function StatikDashboard() {
   }
 
   return (
-    <div className="min-h-screen bg-[#000e02] text-white">
+    <div className="min-h-screen bg-[#000000] text-white">
       {/* Navbar */}
       <nav className="border-b border-gray-800 px-6 py-4">
         <div className="flex items-center justify-between max-w-7xl mx-auto">
@@ -455,7 +455,7 @@ export default function StatikDashboard() {
           <h1 className="text-3xl font-bold mb-2">
             Hello, {walletAddress ? truncateAddress(walletAddress) : 'Please connect your wallet'}
           </h1>
-          <div className="w-1/3 rounded-2xl relative aspect-square bg-neutral-700/20 flex items-center justify-center" >
+          <div className="w-1/3 rounded-2xl relative aspect-square bg-green-900/20 flex items-center justify-center" >
             <p className="text-4xl font-bold">{exp_number}</p>
           </div>
             <Button className="rounded-full bg-green-500 text-black font-semibold text-xl p-4 hover:bg-green-400 w-1/3 mt-4" >Redeem</Button>
