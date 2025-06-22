@@ -112,30 +112,39 @@ setInterval(async () => {
             }));
 
             CALLBACKS[callbackId] = async (data: IncomingMessage) => {
-                if (data.type === 'validate') {
-                    const { validatorId, status, latency, statusCode } = data.data;
+              if (data.type === 'validate') {
+                const { validatorId, status, latency, statusCode } = data.data;
+                if (!validatorId) {
+                  console.error("Received validate with null validatorId, skipping tick creation");
+                  return;
+                }
 
-                    console.log("data", data);
+                console.log("data", data);
 
-                    await prismaClient.websiteTick.create({
-                        data: {
-                            status,
-                            latency,
-                            createdAt: new Date(),
-                            statusCode: statusCode,
-                            website: {
-                                connect: {
-                                    id: website.id
-                                }
-                            },
-                            validator: {
-                                connect: {
-                                    id: validatorId,
-                                }
-                            }
-                        },
-                    });
+                const tickData: any = {
+                    status,
+                    latency,
+                    createdAt: new Date(),
+                    statusCode: typeof statusCode === 'number' ? statusCode : 0,
+                    website: {
+                        connect: {
+                            id: website.id
+                        }
+                    }
+                };
+                if (validatorId) {
+                    tickData.validator = {
+                        connect: {
+                            id: validatorId,
+                        }
+                    };
+                }
 
+                await prismaClient.websiteTick.create({
+                    data: tickData,
+                });
+
+                if (validatorId) {
                     await prismaClient.validator.update({
                         where: { id: validatorId },
                         data: {
@@ -143,6 +152,7 @@ setInterval(async () => {
                         },
                     });
                 }
+              }
             };
         });
     }
