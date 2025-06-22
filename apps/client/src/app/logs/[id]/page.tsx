@@ -1,5 +1,5 @@
 "use client"
-import { useState } from "react"
+import { use, useEffect, useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
@@ -7,22 +7,16 @@ import { Navbar } from "@/components/navbar"
 import { ArrowLeft, Clock, TrendingUp, Activity, BarChart3, LineChartIcon } from "lucide-react"
 import { Bar, BarChart, Line, LineChart, ResponsiveContainer, XAxis, YAxis, Tooltip, Cell, Dot } from "recharts"
 import Link from "next/link"
+import { useUser } from "@civic/auth/react"
+import axios from "axios"
 
-// Sample latency data
-const latencyData = [
-  { time: "00:00", latency: 120 },
-  { time: "02:00", latency: 95 },
-  { time: "04:00", latency: 110 },
-  { time: "06:00", latency: 85 },
-  { time: "08:00", latency: 140 },
-  { time: "10:00", latency: 105 },
-  { time: "12:00", latency: 90 },
-  { time: "14:00", latency: 125 },
-  { time: "16:00", latency: 115 },
-  { time: "18:00", latency: 100 },
-  { time: "20:00", latency: 130 },
-  { time: "22:00", latency: 95 },
-]
+// Utility: Convert ISO string to HH:MM (24-hour)
+function formatToHHMM(isoString: string): string {
+  const date = new Date(isoString)
+  const hours = date.getHours().toString().padStart(2, "0")
+  const minutes = date.getMinutes().toString().padStart(2, "0")
+  return `${hours}:${minutes}`
+}
 
 // Custom dot component for line chart hover effects
 const CustomDot = (props: any) => {
@@ -41,6 +35,35 @@ export default function WebsiteDetails({ params }: { params: { id: string } }) {
   const websiteUrl = "https://example.com" // This would come from your data based on params.id
   const [hoveredIndex, setHoveredIndex] = useState<number | null>(null)
   const [chartType, setChartType] = useState<"bar" | "line">("bar")
+  const [data, setData] = useState<any>(null)
+  const {user} = useUser()
+
+  const fetchData = async () => {
+    const {data} = await axios.post("/api/logs", {
+      email: user?.email,
+      websiteId: params.id
+    })
+    console.log(JSON.stringify(data, null, 2))
+    setData(data.creds)
+  }
+
+  useEffect(() => {
+    if (user?.email) {
+      fetchData()
+    }
+  }, [user?.email])
+
+  // Prepare tick data for table
+  const ticks = data?.ticks || []
+
+  // Latency chart data from ticks (latest 12, oldest first)
+  const latencyData = ticks
+    .slice(-12)
+    .map((tick: any) => ({
+      time: formatToHHMM(tick.createdAt),
+      latency: tick.latency,
+      status: tick.status,
+    }))
 
   return (
     <div className="min-h-screen bg-black text-white">
@@ -60,13 +83,13 @@ export default function WebsiteDetails({ params }: { params: { id: string } }) {
                 <img src="/logo.png" alt="Statik Logo" className="w-8 h-8" />
               </div>
               <div>
-                <h1 className="text-xl font-semibold text-white">{websiteUrl}</h1>
+                <h1 className="text-xl font-semibold text-white">{data && data.url ? data.url : websiteUrl}</h1>
                 <Badge className="bg-green-500/20 text-green-400 border-green-500/30 border mt-1">Active</Badge>
               </div>
             </div>
           </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
             {/* Left Column - Charts and Stats */}
             <div className="lg:col-span-2 space-y-6">
               {/* Latency Chart */}
@@ -211,7 +234,57 @@ export default function WebsiteDetails({ params }: { params: { id: string } }) {
                 </CardContent>
               </Card>
 
-              {/* Stats Cards */}
+              {/* Ticks Table */}
+              <Card className="bg-neutral-900 border-gray-800 rounded-3xl">
+                <CardHeader>
+                  <CardTitle className="text-white">Recent Checks</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="overflow-x-auto">
+                    <table className="min-w-full text-sm">
+                      <thead>
+                        <tr className="text-gray-400 border-b border-gray-700">
+                          <th className="py-2 px-2 text-left">Time</th>
+                          <th className="py-2 px-2 text-left">Status</th>
+                          <th className="py-2 px-2 text-left">Latency (ms)</th>
+                          <th className="py-2 px-2 text-left">Status Code</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {ticks.length === 0 && (
+                          <tr>
+                            <td colSpan={4} className="py-4 text-center text-gray-500">No checks yet.</td>
+                          </tr>
+                        )}
+                        {Array.from(ticks).toReversed().slice(0,10).map((tick: any) => (
+                          <tr key={tick.id} className="border-b border-gray-800">
+                            <td className="py-2 px-2">{formatToHHMM(tick.createdAt)}</td>
+                            <td className="py-2 px-2">
+                              <span className={
+                                tick.status === "Good"
+                                  ? "text-green-400"
+                                  : "text-red-400"
+                              }>
+                                {tick.status}
+                              </span>
+                            </td>
+                            <td className="py-2 px-2">{tick.latency}</td>
+                            <td className="py-2 px-2">{tick.statusCode}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </CardContent>
+              </Card>
+
+              
+            </div>
+
+            {/* Right Column - AI Summary */}
+            <div className="lg:col-span-2">
+              <div className="grid col-span-3 gap-4 mb-6">
+                {/* Stats Cards */}
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <Card className="bg-neutral-900 border-gray-800 rounded-3xl">
                   <CardContent className="p-6">
@@ -255,10 +328,7 @@ export default function WebsiteDetails({ params }: { params: { id: string } }) {
                   </CardContent>
                 </Card>
               </div>
-            </div>
-
-            {/* Right Column - AI Summary */}
-            <div className="lg:col-span-1">
+              </div>
               <Card className="bg-neutral-900 border-gray-800 h-fit rounded-3xl">
                 <CardHeader>
                   <CardTitle className="text-white flex items-center gap-2">
@@ -314,3 +384,4 @@ export default function WebsiteDetails({ params }: { params: { id: string } }) {
     </div>
   )
 }
+      

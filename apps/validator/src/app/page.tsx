@@ -21,6 +21,7 @@ import { MapPin, Wallet, Globe, Award, Wifi, WifiOff } from "lucide-react";
 import type { OutgoingMessage, SignupOutgoingMessage, ValidateOutgoingMessage } from "common/types";
 import { v4 as uuidv4 } from 'uuid';
 import Image from "next/image";
+import { Aptos, AptosConfig, Network } from "@aptos-labs/ts-sdk"
 
 // Define types for location data
 interface Location {
@@ -352,6 +353,38 @@ export default function StatikDashboard() {
     }
   }, [isClient]);
 
+  // Aptos SDK setup
+  const CONTRACT_ADDRESS = "0xf6d55a9f9009d4792996341270ed8b0c94b3a909e8d7f784ba3d69be019963e4" // <-- update as needed
+  const MODULE_NAME = "uptime_monitoring"
+  const aptos = new Aptos(new AptosConfig({ network: Network.TESTNET }))
+
+  // Add redeem loading state
+  const [isRedeeming, setIsRedeeming] = useState(false);
+
+  // Claim rewards function
+  const claimRewards = async () => {
+    if (!isConnected || !walletAddress) return;
+    setIsRedeeming(true);
+    try {
+      // Only sign the transaction, wallet is already connected
+      // Petra expects the transaction in a specific format (not wrapped in { data: ... })
+      const transaction = {
+        function: `${CONTRACT_ADDRESS}::${MODULE_NAME}::claim_rewards`,
+        type_arguments: [],
+        arguments: [],
+      };
+      // @ts-ignore
+      const response = await window.aptos.signAndSubmitTransaction(transaction);
+      await aptos.waitForTransaction({ transactionHash: response.hash });
+      alert("Rewards claimed!");
+    } catch (error) {
+      console.error("Claim failed:", error);
+      alert("Failed to claim rewards.");
+    } finally {
+      setIsRedeeming(false);
+    }
+  };
+
   // Don't render until we're on the client
   if (!isClient) {
     return <div className="min-h-screen bg-[#000e02] text-white flex items-center justify-center">
@@ -458,7 +491,39 @@ export default function StatikDashboard() {
           <div className="w-1/3 rounded-2xl relative aspect-square bg-green-900/20 flex items-center justify-center" >
             <p className="text-4xl font-bold">{exp_number}</p>
           </div>
-            <Button className="rounded-full bg-green-500 text-black font-semibold text-xl p-4 hover:bg-green-400 w-1/3 mt-4" >Redeem</Button>
+          <Button
+            className="rounded-full bg-green-500 text-black font-semibold text-xl p-4 hover:bg-green-400 w-1/3 mt-4"
+            onClick={claimRewards}
+            disabled={isRedeeming || !isConnected}
+          >
+            {isRedeeming ? (
+              <span className="flex items-center justify-center">
+                <svg
+                  className="animate-spin -ml-1 mr-3 h-5 w-5 text-black"
+                  xmlns="http://www.w3.org/2000/svg"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                >
+                  <circle
+                    className="opacity-25"
+                    cx="12"
+                    cy="12"
+                    r="10"
+                    stroke="currentColor"
+                    strokeWidth="4"
+                  ></circle>
+                  <path
+                    className="opacity-75"
+                    fill="currentColor"
+                    d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                  ></path>
+                </svg>
+                Redeeming...
+              </span>
+            ) : (
+              "Redeem"
+            )}
+          </Button>
         </div>
       </main>
     </div>
