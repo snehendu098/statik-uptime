@@ -50,7 +50,52 @@ async function main() {
       console.log("Validator set", validatorId);
       delete CALLBACKS[data.data.callbackId];
     } else if (data.type === "validate") {
-      console.log("Validating website");
+      const { callbackId, url, websiteId } = data.data;
+
+      console.log(`Validating ${data.data.url}`);
+      const signedMessage = await account.signMessage({
+        message: `Replying to ${callbackId}`,
+      });
+
+      const startTime = Date.now();
+      try {
+        const res = await fetch(url);
+        const latency = startTime - Date.now();
+        const status = res.status;
+
+        console.log(url);
+        console.log(status);
+
+        ws.send(
+          JSON.stringify({
+            type: "validate",
+            data: {
+              callbackId,
+              status: status === 200 ? "Good" : "Bad",
+              latency,
+              websiteId,
+              validatorId,
+              signedMessage,
+            },
+          }),
+        );
+      } catch (error) {
+        ws.send(
+          JSON.stringify({
+            type: "validate",
+            data: {
+              callbackId,
+              status: "Bad",
+              latency: 1000,
+              websiteId,
+              validatorId,
+              signedMessage,
+            },
+          }),
+        );
+
+        console.error(error);
+      }
     }
   };
 }

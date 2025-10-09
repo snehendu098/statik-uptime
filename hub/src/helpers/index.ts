@@ -1,11 +1,13 @@
 import { WSContext } from "hono/ws";
 import { SignupIncomingMessage } from "../types";
 import { v7 } from "uuid";
-import { addValidator } from "../state";
+import { addValidator, AVAILABLE_VALIDATORS } from "../state";
+import { type Env } from "../db/client";
 
-export const signUpHandler = (
+export const signUpHandler = async (
   ws: WSContext<WebSocket>,
   data: SignupIncomingMessage,
+  env: Env,
 ) => {
   const id = v7().toString();
 
@@ -19,6 +21,16 @@ export const signUpHandler = (
     }),
   );
 
-  // Add validator to both maps
-  addValidator(ws, { validatorId: id, pubKey: data.publicKey });
+  // Add validator to both maps and save them
+  await addValidator(
+    ws,
+    {
+      validatorId: id,
+      pubKey: data.publicKey,
+      ip: data.ip,
+    },
+    env,
+  );
+
+  return AVAILABLE_VALIDATORS.size;
 };

@@ -7,7 +7,21 @@ export interface SignupIncomingMessage {
   callbackId: string;
 }
 
-export interface IncomingMessage {
-  type: "signup";
-  data: SignupIncomingMessage;
+export interface ValidateIncomingMessage {
+  callbackId: string;
+  signedMessage: string;
+  status: "Good" | "Bad";
+  latency: number;
+  websiteId: string;
+  validatorId: string;
 }
+
+export type IncomingMessage =
+  | {
+      type: "signup";
+      data: SignupIncomingMessage;
+    }
+  | {
+      type: "validate";
+      data: ValidateIncomingMessage;
+    };

@@ -2,13 +2,13 @@
   "$schema": "node_modules/wrangler/config-schema.json",
   "name": "hub",
   "main": "src/index.ts",
-  "compatibility_date": "2025-10-08"
-  // "compatibility_flags": [
-  //   "nodejs_compat"
-  // ],
-  // "vars": {
-  //   "MY_VAR": "my-variable"
-  // },
+  "compatibility_date": "2025-10-08",
+  "triggers": {
+    "crons": ["*/1 * * * *"]  // Runs every minute, checks all websites based on their checkIntervals timestamp
+  },
+  "compatibility_flags": [
+    "nodejs_compat"
+  ],
   // "kv_namespaces": [
   //   {
   //     "binding": "MY_KV_NAMESPACE",
@@ -21,18 +21,18 @@
   //     "bucket_name": "my-bucket"
   //   }
   // ],
-  // "d1_databases": [
-  //   {
-  //     "binding": "MY_DB",
-  //     "database_name": "my-database",
-  //     "database_id": ""
-  //   }
-  // ],
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "statik-db",
+      "database_id": "8c1e4969-4ed9-4752-8b9f-d668e017f3a2",
+      "migrations_dir": "./src/db/migrations",
+    }
+  ],
   // "ai": {
   //   "binding": "AI"
   // },
-  // "observability": {
-  //   "enabled": true,
-  //   "head_sampling_rate": 1
-  // }
+  "observability": {
+    "enabled": true,
+  }
 }
