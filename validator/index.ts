@@ -14,7 +14,7 @@ console.log(privateKey);
 const account = privateKeyToAccount(privateKey);
 
 async function main() {
-  const ws = new WebSocket("ws://localhost:8787/ws");
+  const ws = new WebSocket("wss://hub.silonelabs.workers.dev/ws");
 
   ws.onopen = async () => {
     const callbackId = randomUUIDv7().toString();
@@ -43,6 +43,12 @@ async function main() {
 
   ws.onmessage = async (event) => {
     const data: OutgoingMessage = JSON.parse(event.data);
+
+    // Handle ping messages from server to keep connection alive
+    if (data.type === "ping") {
+      ws.send(JSON.stringify({ type: "pong" }));
+      return;
+    }
 
     if (data.type === "signup") {
       console.log("Signup data recieved");

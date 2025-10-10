@@ -4,7 +4,7 @@
   "main": "src/index.ts",
   "compatibility_date": "2025-10-08",
   "triggers": {
-    "crons": ["*/1 * * * *"]  // Runs every minute, checks all websites based on their checkIntervals timestamp
+    "crons": ["*/1 * * * *"],  // Runs every minute, checks all websites based on their checkIntervals timestamp
   },
   "compatibility_flags": [
     "nodejs_compat"
@@ -27,6 +27,7 @@
       "database_name": "statik-db",
       "database_id": "8c1e4969-4ed9-4752-8b9f-d668e017f3a2",
       "migrations_dir": "./src/db/migrations",
+      "remote": true
     }
   ],
   // "ai": {
@@ -34,5 +35,6 @@
   // },
   "observability": {
     "enabled": true,
+    "head_sampling_rate": 1
   }
 }

@@ -8,6 +8,7 @@ export const users = sqliteTable("users", {
     .primaryKey()
     .$defaultFn(() => v7().toString()),
   pubKey: text("pub_key").notNull().unique(),
+  credits: integer("credits"),
 });
 
 // Website table

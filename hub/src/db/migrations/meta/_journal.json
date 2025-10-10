@@ -15,6 +15,13 @@
       "when": 1760047629669,
       "tag": "0001_tranquil_human_cannonball",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "6",
+      "when": 1760137521335,
+      "tag": "0002_modern_fat_cobra",
+      "breakpoints": true
     }
   ]
 }

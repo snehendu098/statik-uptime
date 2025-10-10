@@ -17,4 +17,10 @@ export type OutgoingMessage =
   | {
       type: "validate";
       data: ValidateOutgoingMessage;
+    }
+  | {
+      type: "ping";
+    }
+  | {
+      type: "pong";
     };

@@ -122,6 +122,100 @@ app.post("/website", async (c) => {
   }
 });
 
+// Get all websites for a user by pubKey (lightweight for listing page)
+app.get("/websites/:pubKey", async (c) => {
+  try {
+    const pubKey = c.req.param("pubKey");
+
+    if (!pubKey) {
+      return c.json(
+        {
+          success: false,
+          error: "Missing pubKey parameter",
+        },
+        400,
+      );
+    }
+
+    const db = getDbClient(c.env);
+
+    // Get user by pubKey
+    const user = await db
+      .select()
+      .from(users)
+      .where(eq(users.pubKey, pubKey))
+      .limit(1);
+
+    if (user.length === 0) {
+      return c.json(
+        {
+          success: false,
+          error: "User not found",
+        },
+        404,
+      );
+    }
+
+    // Get all websites for this user
+    const userWebsites = await db
+      .select()
+      .from(websites)
+      .where(eq(websites.userId, user[0].id));
+
+    // For each website, get ticks to calculate uptime
+    const websitesWithBasicInfo = await Promise.all(
+      userWebsites.map(async (website) => {
+        // Get recent ticks to calculate uptime percentage
+        const recentTicks = await db
+          .select()
+          .from(websiteTicks)
+          .where(eq(websiteTicks.websiteId, website.id))
+          .orderBy(desc(websiteTicks.createdAt))
+          .limit(100);
+
+        // Calculate uptime percentage
+        const totalTicks = recentTicks.length;
+        const goodTicks = recentTicks.filter((t) => t.status === "Good").length;
+        const uptimePercentage =
+          totalTicks > 0 ? (goodTicks / totalTicks) * 100 : 0;
+
+        // Get last tick for current status
+        const lastTick = recentTicks[0];
+
+        return {
+          id: website.id,
+          url: website.url,
+          disabled: website.disabled,
+          checkIntervalMinutes: website.checkIntervalMinutes,
+          currentStatus: lastTick?.status || "Unknown",
+          lastChecked: lastTick?.createdAt || null,
+          uptimePercentage: parseFloat(uptimePercentage.toFixed(2)),
+        };
+      }),
+    );
+
+    return c.json({
+      success: true,
+      data: {
+        user: {
+          id: user[0].id,
+          pubKey: user[0].pubKey,
+        },
+        websites: websitesWithBasicInfo,
+      },
+    });
+  } catch (error) {
+    console.error("Error fetching user websites:", error);
+    return c.json(
+      {
+        success: false,
+        error: error instanceof Error ? error.message : "Unknown error",
+      },
+      500,
+    );
+  }
+});
+
 // Get website stats endpoint
 app.get("/website/:websiteId", async (c) => {
   try {
@@ -240,9 +334,36 @@ app.get(
   "/ws",
   upgradeWebSocket((c) => {
     const env = c.env;
+    let pingInterval: NodeJS.Timeout | null = null;
+    let wsRef: any = null;
+
     return {
       onMessage(event, ws) {
+        // Initialize ping interval on first message (since onOpen is not supported)
+        if (!pingInterval && !wsRef) {
+          wsRef = ws;
+          // Start ping interval to prevent Cloudflare's 100s timeout
+          // Send ping every 30 seconds to keep the connection alive
+          pingInterval = setInterval(() => {
+            try {
+              wsRef?.send(JSON.stringify({ type: "ping" }));
+            } catch (error) {
+              console.error("Error sending ping:", error);
+              if (pingInterval) {
+                clearInterval(pingInterval);
+                pingInterval = null;
+              }
+            }
+          }, 30000); // 30 seconds
+        }
+
         const data: IncomingMessage = JSON.parse(event.data.toString());
+
+        // Handle pong responses from clients
+        if (data.type === "pong") {
+          // Client acknowledged our ping, nothing else to do
+          return;
+        }
 
         if (data.type === "signup") {
           console.log("Signup request recieved from", data.data.ip);
@@ -269,7 +390,23 @@ app.get(
       },
 
       onClose(_close, ws) {
+        // Clear the ping interval when connection closes
+        if (pingInterval) {
+          clearInterval(pingInterval);
+          pingInterval = null;
+        }
+        wsRef = null;
         cleanUpValidator(ws);
+      },
+
+      onError(error) {
+        console.error("WebSocket error:", error);
+        // Clear the ping interval on error
+        if (pingInterval) {
+          clearInterval(pingInterval);
+          pingInterval = null;
+        }
+        wsRef = null;
       },
     };
   }),
