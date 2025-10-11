@@ -425,6 +425,153 @@ app.post("/credits", async (c) => {
   }
 });
 
+// Get validator pending payouts by pubKey
+app.get("/validator/:pubKey", async (c) => {
+  try {
+    const pubKey = c.req.param("pubKey");
+
+    if (!pubKey) {
+      return c.json(
+        {
+          success: false,
+          error: "Missing pubKey parameter",
+        },
+        400,
+      );
+    }
+
+    const db = getDbClient(c.env);
+
+    // Get validator by pubKey
+    const validator = await db
+      .select()
+      .from(validators)
+      .where(eq(validators.pubKey, pubKey))
+      .limit(1);
+
+    if (validator.length === 0) {
+      return c.json(
+        {
+          success: false,
+          error: "Validator not found",
+        },
+        404,
+      );
+    }
+
+    return c.json({
+      success: true,
+      data: {
+        validatorId: validator[0].id,
+        pubKey: validator[0].pubKey,
+        pendingPayouts: validator[0].pendingPayouts,
+        location: validator[0].location,
+        ip: validator[0].ip,
+      },
+    });
+  } catch (error) {
+    console.error("Error fetching validator:", error);
+    return c.json(
+      {
+        success: false,
+        error: error instanceof Error ? error.message : "Unknown error",
+      },
+      500,
+    );
+  }
+});
+
+// Reset validator pending payouts to 0
+app.post("/validator/reset-payouts", async (c) => {
+  try {
+    const body = await c.req.json<{
+      pubKey: Address;
+      signedMessage: `0x${string}`;
+    }>();
+
+    const { pubKey, signedMessage } = body;
+
+    // Validate input
+    if (!pubKey || !signedMessage) {
+      return c.json(
+        {
+          success: false,
+          error: "Missing required fields: pubKey, signedMessage",
+        },
+        400,
+      );
+    }
+
+    // Verify the signature
+    const verified = await verifyMessage({
+      address: pubKey,
+      message: `Reset pending payouts for validator ${pubKey}`,
+      signature: signedMessage,
+    });
+
+    if (!verified) {
+      return c.json(
+        {
+          success: false,
+          error: "Invalid signature",
+        },
+        401,
+      );
+    }
+
+    // Get database client
+    const db = getDbClient(c.env);
+
+    // Get validator by pubKey
+    const validator = await db
+      .select()
+      .from(validators)
+      .where(eq(validators.pubKey, pubKey))
+      .limit(1);
+
+    if (validator.length === 0) {
+      return c.json(
+        {
+          success: false,
+          error: "Validator not found",
+        },
+        404,
+      );
+    }
+
+    const previousPayouts = validator[0].pendingPayouts;
+
+    // Reset pending payouts to 0
+    await db
+      .update(validators)
+      .set({ pendingPayouts: 0 })
+      .where(eq(validators.id, validator[0].id));
+
+    console.log(
+      `Reset pending payouts for validator ${validator[0].id}: ${previousPayouts} -> 0`,
+    );
+
+    return c.json({
+      success: true,
+      data: {
+        validatorId: validator[0].id,
+        pubKey: validator[0].pubKey,
+        previousPayouts,
+        newPayouts: 0,
+      },
+    });
+  } catch (error) {
+    console.error("Error resetting validator payouts:", error);
+    return c.json(
+      {
+        success: false,
+        error: error instanceof Error ? error.message : "Unknown error",
+      },
+      500,
+    );
+  }
+});
+
 // WebSocket route - proxy to Durable Object
 app.get("/ws", async (c) => {
   // Get Durable Object stub using a fixed ID (single instance for all validators)
