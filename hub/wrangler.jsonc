@@ -25,9 +25,23 @@
     {
       "binding": "DB",
       "database_name": "statik-db",
-      "database_id": "8c1e4969-4ed9-4752-8b9f-d668e017f3a2",
+      "database_id": "c4cb55b2-aae7-4f14-b5de-a281ffae4c55",
       "migrations_dir": "./src/db/migrations",
       "remote": true
+    }
+  ],
+  "durable_objects": {
+    "bindings": [
+      {
+        "name": "VALIDATOR_REGISTRY",
+        "class_name": "ValidatorRegistry"
+      }
+    ]
+  },
+  "migrations": [
+    {
+      "tag": "v1",
+      "new_classes": ["ValidatorRegistry"]
     }
   ],
   // "ai": {

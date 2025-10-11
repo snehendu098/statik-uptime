@@ -10,8 +10,12 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Settings } from "lucide-react";
+import { Settings, Loader2 } from "lucide-react";
 import { useState } from "react";
+import { useActiveAccount } from "thirdweb/react";
+import { signMessage } from "thirdweb/utils";
+import { createWebsite } from "@/lib/api";
+import { useToast } from "@/hooks/use-toast";
 
 type IntervalType = "1m" | "5m" | "10m" | "1h" | "custom";
 type TimeUnit = "seconds" | "minutes" | "hours" | "days";
@@ -20,13 +24,148 @@ export function CreateMonitorCard() {
   const [selectedInterval, setSelectedInterval] = useState<IntervalType>("5m");
   const [customValue, setCustomValue] = useState<string>("");
   const [customUnit, setCustomUnit] = useState<TimeUnit>("minutes");
+  const [url, setUrl] = useState<string>("");
+  const [isLoading, setIsLoading] = useState<boolean>(false);
+
+  const account = useActiveAccount();
+  const { toast } = useToast();
+
+  // Convert interval selection to minutes
+  const getIntervalInMinutes = (): number => {
+    if (selectedInterval === "custom") {
+      const value = parseInt(customValue) || 5;
+      switch (customUnit) {
+        case "seconds":
+          return Math.max(1, Math.round(value / 60));
+        case "minutes":
+          return value;
+        case "hours":
+          return value * 60;
+        case "days":
+          return value * 60 * 24;
+        default:
+          return 5;
+      }
+    }
+
+    // Convert preset intervals
+    switch (selectedInterval) {
+      case "1m":
+        return 1;
+      case "5m":
+        return 5;
+      case "10m":
+        return 10;
+      case "1h":
+        return 60;
+      default:
+        return 5;
+    }
+  };
+
+  const handleCreateMonitor = async () => {
+    // Validation
+    if (!url) {
+      toast({
+        title: "Error",
+        description: "Please enter a website URL",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (!account) {
+      toast({
+        title: "Error",
+        description: "Please connect your wallet first",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (selectedInterval === "custom" && !customValue) {
+      toast({
+        title: "Error",
+        description: "Please enter a custom interval value",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsLoading(true);
+
+    try {
+      // Format URL if needed
+      let formattedUrl = url.trim();
+      if (!formattedUrl.startsWith("http://") && !formattedUrl.startsWith("https://")) {
+        formattedUrl = `https://${formattedUrl}`;
+      }
+
+      // Create message to sign
+      const message = `Create website monitoring for ${formattedUrl}`;
+
+      // Sign the message
+      const signature = await signMessage({
+        account,
+        message,
+      });
+
+      // Get interval in minutes
+      const checkIntervalMinutes = getIntervalInMinutes();
+
+      // Call API to create website
+      const response = await createWebsite({
+        pubKey: account.address,
+        url: formattedUrl,
+        signedMessage: signature,
+        checkIntervalMinutes,
+      });
+
+      if (response.success) {
+        toast({
+          title: "Success",
+          description: `Monitor created for ${formattedUrl}`,
+        });
+
+        // Reset form
+        setUrl("");
+        setSelectedInterval("5m");
+        setCustomValue("");
+        setCustomUnit("minutes");
+
+        // Reload page to show new monitor
+        window.location.reload();
+      } else {
+        toast({
+          title: "Error",
+          description: response.error || "Failed to create monitor",
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      console.error("Error creating monitor:", error);
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to create monitor",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   return (
     <div className="p-6 mt-6 border bg-card rounded-4xl overflow-hidden transition-all duration-300 ease-in-out">
       <div className="space-y-4">
         <p className="text-lg font-semibold">Create Monitor</p>
 
-        <Input className="w-full rounded-2xl" placeholder="www.example.com" />
+        <Input
+          className="w-full rounded-2xl"
+          placeholder="www.example.com"
+          value={url}
+          onChange={(e) => setUrl(e.target.value)}
+          disabled={isLoading}
+        />
 
         <div className="space-y-3">
           <Label className="text-sm text-muted-foreground">Interval</Label>
@@ -119,7 +258,25 @@ export function CreateMonitorCard() {
           </div>
         </div>
       </div>
-      <Button className="rounded-xl mt-6 w-full">Create Monitor</Button>
+      <Button
+        className="rounded-xl mt-6 w-full"
+        onClick={handleCreateMonitor}
+        disabled={isLoading || !account}
+      >
+        {isLoading ? (
+          <>
+            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+            Creating...
+          </>
+        ) : (
+          "Create Monitor"
+        )}
+      </Button>
+      {!account && (
+        <p className="text-sm text-muted-foreground text-center mt-2">
+          Please connect your wallet to create a monitor
+        </p>
+      )}
     </div>
   );
 }

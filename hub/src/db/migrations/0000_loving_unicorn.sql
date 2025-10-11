@@ -1,6 +1,7 @@
 CREATE TABLE `users` (
 	`id` text PRIMARY KEY NOT NULL,
-	`pub_key` text NOT NULL
+	`pub_key` text NOT NULL,
+	`credits` integer
 );
 --> statement-breakpoint
 CREATE UNIQUE INDEX `users_pub_key_unique` ON `users` (`pub_key`);--> statement-breakpoint
@@ -26,5 +27,6 @@ CREATE TABLE `websites` (
 	`url` text NOT NULL,
 	`user_id` text NOT NULL,
 	`disabled` integer DEFAULT false NOT NULL,
+	`check_interval_minutes` integer DEFAULT 5 NOT NULL,
 	`check_intervals` integer NOT NULL
 );

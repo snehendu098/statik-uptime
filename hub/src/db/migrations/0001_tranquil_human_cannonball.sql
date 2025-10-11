@@ -1,1 +1,0 @@
-ALTER TABLE `websites` ADD `check_interval_minutes` integer DEFAULT 5 NOT NULL;

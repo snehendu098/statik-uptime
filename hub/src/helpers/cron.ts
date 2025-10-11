@@ -1,27 +1,25 @@
 import { v7 } from "uuid";
 import { getDbClient, type Env } from "../db/client";
-import { websites, validators, websiteTicks } from "../db/schema";
-import { AVAILABLE_VALIDATORS, CALLBACKS } from "../state";
-import { IncomingMessage } from "../types";
-import { Address, verifyMessage } from "viem";
+import { websites } from "../db/schema";
 import { eq, lte, and } from "drizzle-orm";
-import { WSContext } from "hono/ws";
+import type { ExecutionContext } from "@cloudflare/workers-types";
 
 /**
  * Randomly selects N validators from the available pool
  * @param count Number of validators to select (default: 3)
- * @returns Array of selected validators with their WebSocket contexts
+ * @returns Array of selected validators
  */
-const selectRandomValidators = (count: number = 3) => {
-  const validatorsArray = Array.from(AVAILABLE_VALIDATORS.entries());
-
+const selectRandomValidators = (
+  validatorList: Array<{ validatorId: string; pubKey: string; ip: string }>,
+  count: number = 3
+) => {
   // If we have fewer validators than requested, return all available
-  if (validatorsArray.length <= count) {
-    return validatorsArray;
+  if (validatorList.length <= count) {
+    return validatorList;
   }
 
   // Fisher-Yates shuffle algorithm to get random selection
-  const shuffled = [...validatorsArray];
+  const shuffled = [...validatorList];
   for (let i = shuffled.length - 1; i > 0; i--) {
     const j = Math.floor(Math.random() * (i + 1));
     [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
@@ -30,9 +28,43 @@ const selectRandomValidators = (count: number = 3) => {
   return shuffled.slice(0, count);
 };
 
-export const sendReqToValidators = async (env: Env) => {
+
+export const sendReqToValidators = async (env: Env, ctx: ExecutionContext) => {
+  console.log("🔄 Cron job starting - checking for websites to validate...");
   const db = getDbClient(env);
   const currentTime = new Date();
+
+  // Get Durable Object stub to access validators
+  const id = env.VALIDATOR_REGISTRY.idFromName("global");
+  const stub = env.VALIDATOR_REGISTRY.get(id);
+  console.log("🔗 Connected to Durable Object");
+
+  // Get list of active validators from Durable Object
+  console.log("📡 Fetching active validators from Durable Object...");
+  const validatorsResponse = await stub.fetch("https://dummy.com/validators");
+
+  console.log(`📥 Response status: ${validatorsResponse.status}`);
+
+  const validatorsData = await validatorsResponse.json() as {
+    success: boolean;
+    count: number;
+    validators: Array<{ validatorId: string; pubKey: string; ip: string }>;
+  };
+
+  console.log(`📊 Validators response data:`, JSON.stringify(validatorsData, null, 2));
+
+  if (!validatorsData.success || validatorsData.count === 0) {
+    console.log("⚠️ No validators available for checking websites");
+    console.log(`   - Success: ${validatorsData.success}`);
+    console.log(`   - Count: ${validatorsData.count}`);
+    return;
+  }
+
+  console.log(`✅ Found ${validatorsData.count} active validators`);
+  console.log(`   Validators:`, validatorsData.validators.map(v => ({
+    id: v.validatorId,
+    pubKey: v.pubKey.slice(0, 10) + '...'
+  })));
 
   // Query only websites that are due for checking (current time >= checkIntervals)
   const websitesDueForCheck = await db
@@ -46,77 +78,54 @@ export const sendReqToValidators = async (env: Env) => {
     );
 
   console.log(
-    `Found ${websitesDueForCheck.length} websites due for checking`
+    `📋 Found ${websitesDueForCheck.length} websites due for checking`
   );
 
   for (const website of websitesDueForCheck) {
     // Select 3 random validators for this website check
-    const selectedValidators = selectRandomValidators(3);
+    const selectedValidators = selectRandomValidators(validatorsData.validators, 3);
 
     console.log(
-      `Selected ${selectedValidators.length} validators for website ${website.id} (${website.url})`
+      `✅ Selected ${selectedValidators.length} validators for website ${website.id} (${website.url})`
     );
 
-    // Send validation requests only to selected validators
-    selectedValidators.forEach(([socket, validatorInfo]) => {
+    // Send validation requests to all selected validators (fire-and-forget)
+    for (const validator of selectedValidators) {
       const callbackId = v7().toString();
 
-      socket.send(
-        JSON.stringify({
-          type: "validate",
-          data: {
-            url: website.url,
-            callbackId,
-            websiteId: website.id,
+      try {
+        // Send validation request with callback context to Durable Object
+        await stub.fetch("https://dummy.com/validate", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
           },
-        }),
-      );
-
-      CALLBACKS[callbackId] = async (data: IncomingMessage) => {
-        if (data.type === "validate") {
-          const { status, latency, signedMessage } = data.data;
-
-          const verified = await verifyMessage({
-            address: validatorInfo.pubKey as Address,
-            message: `Replying to ${callbackId}`,
-            signature: signedMessage as Address,
-          });
-
-          const validatorDb = await db
-            .select()
-            .from(validators)
-            .where(eq(validators.pubKey, validatorInfo.pubKey || ""))
-            .limit(1);
-
-          if (!verified || validatorDb.length === 0) return;
-
-          const validator = validatorDb[0];
-
-          // Drizzle doesn't have built-in transactions for D1 yet, but we can use batch
-          await db.batch([
-            db.insert(websiteTicks).values({
+          body: JSON.stringify({
+            validatorId: validator.validatorId,
+            callbackId,
+            url: website.url,
+            websiteId: website.id,
+            callbackContext: {
               websiteId: website.id,
-              validatorId: validator.id,
-              status,
-              latency,
-              createdAt: new Date(),
-            }),
-            db
-              .update(validators)
-              .set({
-                pendingPayouts: validator.pendingPayouts + 100,
-              })
-              .where(eq(validators.id, validator.id)),
-          ]);
+              website: {
+                url: website.url,
+                userId: website.userId,
+                checkIntervalMinutes: website.checkIntervalMinutes,
+              },
+              validatorId: validator.validatorId,
+              validatorPubKey: validator.pubKey,
+            },
+          }),
+        });
 
-          console.log(
-            `Recorded validation for website ${website.id} by validator ${validator.id}: ${status} (${latency}ms)`
-          );
-        }
-      };
-    });
+        console.log(`📤 Sent validation request to validator ${validator.validatorId} for ${website.url}`);
 
-    // Update the next check interval based on the website's checkIntervalMinutes
+      } catch (error) {
+        console.error(`Error sending validation request to ${validator.validatorId}:`, error);
+      }
+    }
+
+    // Update next check interval immediately (fire-and-forget)
     const nextCheckTime = new Date(
       currentTime.getTime() + website.checkIntervalMinutes * 60 * 1000
     );
@@ -127,7 +136,9 @@ export const sendReqToValidators = async (env: Env) => {
       .where(eq(websites.id, website.id));
 
     console.log(
-      `Updated next check time for website ${website.id} (${website.url}) to ${nextCheckTime.toISOString()}`
+      `⏰ Updated next check time for website ${website.id} (${website.url}) to ${nextCheckTime.toISOString()}`
     );
   }
+
+  console.log(`✅ Cron job completed - sent validation requests for ${websitesDueForCheck.length} websites`);
 };

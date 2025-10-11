@@ -9,26 +9,29 @@ import {
   Zap,
   CheckCircle2,
   RefreshCcw,
+  Loader2,
 } from "lucide-react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useState, useEffect } from "react";
+import { getWebsiteStats } from "@/lib/api";
+import { useToast } from "@/hooks/use-toast";
 
-// Tick interface
+// Tick interface matching hub API response
 interface Tick {
   id: string;
-  status: "Good" | "Bad" | "Unknown";
+  status: "Good" | "Bad";
   latency: number;
   createdAt: string;
-  validator?: {
+  validator: {
     id: string;
     pubKey: string;
     location: string;
     ip: string;
-  };
+  } | null;
 }
 
-// Mock data based on hub API response structure
+// WebsiteStats interface matching hub API response
 interface WebsiteStats {
   website: {
     id: string;
@@ -46,162 +49,63 @@ interface WebsiteStats {
   recentTicks: Tick[];
 }
 
-// Mock ticks data - Replace this with actual API data
-const mockTicks: Tick[] = [
-  {
-    id: "tick-001",
-    status: "Good",
-    latency: 142,
-    createdAt: new Date(Date.now() - 5 * 60 * 1000).toISOString(),
-    validator: {
-      id: "val-1",
-      pubKey: "0x1234567890abcdef1234567890abcdef12345678",
-      location: "US-East",
-      ip: "192.168.1.1",
-    },
-  },
-  {
-    id: "tick-002",
-    status: "Good",
-    latency: 138,
-    createdAt: new Date(Date.now() - 10 * 60 * 1000).toISOString(),
-    validator: {
-      id: "val-2",
-      pubKey: "0xabcdef1234567890abcdef1234567890abcdef12",
-      location: "EU-West",
-      ip: "192.168.1.2",
-    },
-  },
-  {
-    id: "tick-003",
-    status: "Good",
-    latency: 156,
-    createdAt: new Date(Date.now() - 15 * 60 * 1000).toISOString(),
-    validator: {
-      id: "val-3",
-      pubKey: "0xfedcba0987654321fedcba0987654321fedcba09",
-      location: "Asia-Pacific",
-      ip: "192.168.1.3",
-    },
-  },
-  {
-    id: "tick-004",
-    status: "Bad",
-    latency: 250,
-    createdAt: new Date(Date.now() - 20 * 60 * 1000).toISOString(),
-    validator: {
-      id: "val-4",
-      pubKey: "0x9876543210fedcba9876543210fedcba98765432",
-      location: "US-West",
-      ip: "192.168.1.4",
-    },
-  },
-  {
-    id: "tick-005",
-    status: "Good",
-    latency: 145,
-    createdAt: new Date(Date.now() - 25 * 60 * 1000).toISOString(),
-    validator: {
-      id: "val-1",
-      pubKey: "0x1234567890abcdef1234567890abcdef12345678",
-      location: "US-East",
-      ip: "192.168.1.1",
-    },
-  },
-  {
-    id: "tick-006",
-    status: "Good",
-    latency: 132,
-    createdAt: new Date(Date.now() - 30 * 60 * 1000).toISOString(),
-    validator: {
-      id: "val-2",
-      pubKey: "0xabcdef1234567890abcdef1234567890abcdef12",
-      location: "EU-West",
-      ip: "192.168.1.2",
-    },
-  },
-  {
-    id: "tick-007",
-    status: "Good",
-    latency: 167,
-    createdAt: new Date(Date.now() - 35 * 60 * 1000).toISOString(),
-    validator: {
-      id: "val-3",
-      pubKey: "0xfedcba0987654321fedcba0987654321fedcba09",
-      location: "Asia-Pacific",
-      ip: "192.168.1.3",
-    },
-  },
-  {
-    id: "tick-008",
-    status: "Good",
-    latency: 128,
-    createdAt: new Date(Date.now() - 40 * 60 * 1000).toISOString(),
-    validator: {
-      id: "val-4",
-      pubKey: "0x9876543210fedcba9876543210fedcba98765432",
-      location: "US-West",
-      ip: "192.168.1.4",
-    },
-  },
-  {
-    id: "tick-009",
-    status: "Good",
-    latency: 189,
-    createdAt: new Date(Date.now() - 45 * 60 * 1000).toISOString(),
-    validator: {
-      id: "val-1",
-      pubKey: "0x1234567890abcdef1234567890abcdef12345678",
-      location: "US-East",
-      ip: "192.168.1.1",
-    },
-  },
-  {
-    id: "tick-010",
-    status: "Good",
-    latency: 143,
-    createdAt: new Date(Date.now() - 50 * 60 * 1000).toISOString(),
-    validator: {
-      id: "val-2",
-      pubKey: "0xabcdef1234567890abcdef1234567890abcdef12",
-      location: "EU-West",
-      ip: "192.168.1.2",
-    },
-  },
-];
-
-// Calculate stats from ticks data
-const totalChecks = mockTicks.length;
-const goodChecks = mockTicks.filter((t) => t.status === "Good").length;
-const badChecks = mockTicks.filter((t) => t.status === "Bad").length;
-const uptimePercentage = parseFloat(
-  ((goodChecks / totalChecks) * 100).toFixed(2),
-);
-const averageLatency = parseFloat(
-  (mockTicks.reduce((sum, t) => sum + t.latency, 0) / totalChecks).toFixed(2),
-);
-
-const mockWebsiteStats: WebsiteStats = {
-  website: {
-    id: "1",
-    url: "https://example.com",
-    disabled: false,
-    checkIntervalMinutes: 5,
-  },
-  stats: {
-    totalChecks,
-    goodChecks,
-    badChecks,
-    uptimePercentage,
-    averageLatency,
-  },
-  recentTicks: mockTicks,
-};
-
 const Page = () => {
   const params = useParams();
-  const [websiteStats] = useState<WebsiteStats>(mockWebsiteStats);
+  const { toast } = useToast();
+  const [websiteStats, setWebsiteStats] = useState<WebsiteStats | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [, setUpdateTrigger] = useState(0);
+
+  const fetchWebsiteData = async () => {
+    if (!params.id || typeof params.id !== "string") {
+      toast({
+        title: "Error",
+        description: "Invalid website ID",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      setRefreshing(true);
+      const response = await getWebsiteStats(params.id);
+
+      if (response.success && response.data) {
+        setWebsiteStats({
+          website: {
+            id: response.data.website.id,
+            url: response.data.website.url,
+            disabled: response.data.website.disabled,
+            checkIntervalMinutes: response.data.website.checkIntervalMinutes,
+          },
+          stats: response.data.stats,
+          recentTicks: response.data.recentTicks,
+        });
+      } else {
+        toast({
+          title: "Error",
+          description: response.error || "Failed to fetch website stats",
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      console.error("Error fetching website stats:", error);
+      toast({
+        title: "Error",
+        description: "Failed to load website data",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
+  };
+
+  // Fetch data on mount
+  useEffect(() => {
+    fetchWebsiteData();
+  }, [params.id]);
 
   // Update the display every second to refresh the "time ago" text
   useEffect(() => {
@@ -211,6 +115,10 @@ const Page = () => {
 
     return () => clearInterval(interval);
   }, []);
+
+  const handleRefresh = () => {
+    fetchWebsiteData();
+  };
 
   const formatTimeSince = (dateString: string) => {
     const date = new Date(dateString);
@@ -234,8 +142,35 @@ const Page = () => {
     return url.replace(/^https?:\/\//, "").replace(/^www\./, "");
   };
 
-  const lastChecked = websiteStats.recentTicks[0]?.createdAt
-    ? formatTimeSince(websiteStats.recentTicks[0].createdAt)
+  if (loading) {
+    return (
+      <div className="w-full h-[60vh] flex items-center justify-center">
+        <div className="flex flex-col items-center gap-4">
+          <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
+          <p className="text-sm text-muted-foreground">Loading website data...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!websiteStats) {
+    return (
+      <div className="w-full h-[60vh] flex items-center justify-center">
+        <div className="flex flex-col items-center gap-4">
+          <p className="text-lg font-semibold">Website not found</p>
+          <Button asChild>
+            <Link href="/">
+              <ArrowLeft className="w-4 h-4 mr-2" />
+              Back to Dashboard
+            </Link>
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
+  const lastChecked = websiteStats.recentTicks[websiteStats.recentTicks.length - 1]?.createdAt
+    ? formatTimeSince(websiteStats.recentTicks[websiteStats.recentTicks.length - 1].createdAt)
     : "Never";
 
   return (
@@ -252,9 +187,16 @@ const Page = () => {
           </p>
         </div>
 
-        {/*Refresh Button*/}
-        <Button className="rounded-xl" variant={"secondary"}>
-          <RefreshCcw className="w-4 aspect-square" />
+        {/* Refresh Button */}
+        <Button
+          className="rounded-xl"
+          variant={"secondary"}
+          onClick={handleRefresh}
+          disabled={refreshing}
+        >
+          <RefreshCcw
+            className={`w-4 aspect-square ${refreshing ? "animate-spin" : ""}`}
+          />
         </Button>
       </div>
 

@@ -5,7 +5,13 @@ import { Input } from "@/components/ui/input";
 import { PlusIcon } from "lucide-react";
 import { useState } from "react";
 
-export function RemainingCreditsCard() {
+interface RemainingCreditsCardProps {
+  credits?: number;
+}
+
+export function RemainingCreditsCard({
+  credits = 0,
+}: RemainingCreditsCardProps) {
   const [showBuyCredits, setShowBuyCredits] = useState(false);
   const [creditAmount, setCreditAmount] = useState<string>("1000");
 
@@ -15,10 +21,10 @@ export function RemainingCreditsCard() {
         <p className="text-sm font-semibold text-muted-foreground">
           Remaining Credits
         </p>
-        <p className="text-4xl font-semibold">5000</p>
+        <p className="text-4xl font-semibold">{credits.toLocaleString()}</p>
         <div className="flex w-full items-center justify-between">
           <p className="text-sm text-muted-foreground">
-            Cost Per Validation: 100
+            Cost Per Validation: 10
           </p>
           <Button
             size={"icon-sm"}

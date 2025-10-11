@@ -1,8 +1,4 @@
-import type { Address } from "viem";
-import dotenv from "dotenv";
+import type { Hex } from "viem";
 
-dotenv.config({
-  path: "./.env",
-});
-
-export const privateKey = process.env.PRIVATE_KEY! as Address;
+// Bun automatically loads .env files, no need for dotenv
+export const privateKey = process.env.PRIVATE_KEY! as Hex;

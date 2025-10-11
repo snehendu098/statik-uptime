@@ -1,16 +1,62 @@
 import { Hono } from "hono";
-import { upgradeWebSocket } from "hono/cloudflare-workers";
-import { IncomingMessage } from "./types";
-import { signUpHandler } from "./helpers";
-import { CALLBACKS, cleanUpValidator } from "./state";
-import { verify } from "./helpers/crypto";
+import { cors } from "hono/cors";
 import { sendReqToValidators } from "./helpers/cron";
 import { type Env, getDbClient } from "./db/client";
 import { users, websites, websiteTicks, validators } from "./db/schema";
 import { eq, desc } from "drizzle-orm";
 import { Address, verifyMessage } from "viem";
 
+// Export Durable Object for Cloudflare Workers
+export { ValidatorRegistry } from "./validator-registry";
+
 const app = new Hono<{ Bindings: Env }>();
+
+// Enable CORS for all routes
+app.use(
+  "/*",
+  cors({
+    origin: "*", // Allow all origins (adjust in production to specific domains)
+    allowMethods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    allowHeaders: ["Content-Type", "Authorization"],
+    exposeHeaders: ["Content-Length"],
+    maxAge: 600,
+    credentials: true,
+  }),
+);
+
+/**
+ * Helper function to get or create a user by public key
+ * Returns the user record, creating one with 1000 credits if it doesn't exist
+ */
+async function getOrCreateUser(
+  db: ReturnType<typeof getDbClient>,
+  pubKey: string,
+) {
+  let user = await db
+    .select()
+    .from(users)
+    .where(eq(users.pubKey, pubKey))
+    .limit(1);
+
+  if (user.length === 0) {
+    console.log(`User not found for pubKey: ${pubKey}. Creating new user...`);
+
+    const newUser = await db
+      .insert(users)
+      .values({
+        pubKey,
+        credits: 1000, // Initialize with 1000 credits
+      })
+      .returning();
+
+    user = newUser;
+    console.log(
+      `Created new user: ${newUser[0].id} for pubKey: ${pubKey} with 1000 starting credits`,
+    );
+  }
+
+  return user[0];
+}
 
 // Create website endpoint
 app.post("/website", async (c) => {
@@ -55,30 +101,9 @@ app.post("/website", async (c) => {
     // Get database client
     const db = getDbClient(c.env);
 
-    // Check if user exists
-    let existingUser = await db
-      .select()
-      .from(users)
-      .where(eq(users.pubKey, pubKey))
-      .limit(1);
-
-    let userId: string;
-
-    // Create user if doesn't exist
-    if (existingUser.length === 0) {
-      const newUser = await db
-        .insert(users)
-        .values({
-          pubKey,
-        })
-        .returning();
-
-      userId = newUser[0].id;
-      console.log(`Created new user: ${userId} for pubKey: ${pubKey}`);
-    } else {
-      userId = existingUser[0].id;
-      console.log(`User already exists: ${userId} for pubKey: ${pubKey}`);
-    }
+    // Get or create user
+    const user = await getOrCreateUser(db, pubKey);
+    const userId = user.id;
 
     // Calculate next check interval (from now)
     const checkIntervals = new Date(
@@ -139,28 +164,14 @@ app.get("/websites/:pubKey", async (c) => {
 
     const db = getDbClient(c.env);
 
-    // Get user by pubKey
-    const user = await db
-      .select()
-      .from(users)
-      .where(eq(users.pubKey, pubKey))
-      .limit(1);
-
-    if (user.length === 0) {
-      return c.json(
-        {
-          success: false,
-          error: "User not found",
-        },
-        404,
-      );
-    }
+    // Get or create user (auto-creates on first visit for smoother UX)
+    const user = await getOrCreateUser(db, pubKey);
 
     // Get all websites for this user
     const userWebsites = await db
       .select()
       .from(websites)
-      .where(eq(websites.userId, user[0].id));
+      .where(eq(websites.userId, user.id));
 
     // For each website, get ticks to calculate uptime
     const websitesWithBasicInfo = await Promise.all(
@@ -198,8 +209,9 @@ app.get("/websites/:pubKey", async (c) => {
       success: true,
       data: {
         user: {
-          id: user[0].id,
-          pubKey: user[0].pubKey,
+          id: user.id,
+          pubKey: user.pubKey,
+          credits: user.credits || 0,
         },
         websites: websitesWithBasicInfo,
       },
@@ -309,13 +321,15 @@ app.get("/website/:websiteId", async (c) => {
           uptimePercentage: parseFloat(uptime),
           averageLatency: parseFloat(avgLatency),
         },
-        recentTicks: ticks.map((tick) => ({
-          id: tick.id,
-          status: tick.status,
-          latency: tick.latency,
-          createdAt: tick.createdAt,
-          validator: tick.validator,
-        })),
+        recentTicks: ticks
+          .map((tick) => ({
+            id: tick.id,
+            status: tick.status,
+            latency: tick.latency,
+            createdAt: tick.createdAt,
+            validator: tick.validator,
+          }))
+          .reverse(), // Reverse to show oldest first, most recent last for chart display
       },
     });
   } catch (error) {
@@ -330,87 +344,18 @@ app.get("/website/:websiteId", async (c) => {
   }
 });
 
-app.get(
-  "/ws",
-  upgradeWebSocket((c) => {
-    const env = c.env;
-    let pingInterval: NodeJS.Timeout | null = null;
-    let wsRef: any = null;
+// WebSocket route - proxy to Durable Object
+app.get("/ws", async (c) => {
+  // Get Durable Object stub using a fixed ID (single instance for all validators)
+  const id = c.env.VALIDATOR_REGISTRY.idFromName("global");
+  const stub = c.env.VALIDATOR_REGISTRY.get(id);
 
-    return {
-      onMessage(event, ws) {
-        // Initialize ping interval on first message (since onOpen is not supported)
-        if (!pingInterval && !wsRef) {
-          wsRef = ws;
-          // Start ping interval to prevent Cloudflare's 100s timeout
-          // Send ping every 30 seconds to keep the connection alive
-          pingInterval = setInterval(() => {
-            try {
-              wsRef?.send(JSON.stringify({ type: "ping" }));
-            } catch (error) {
-              console.error("Error sending ping:", error);
-              if (pingInterval) {
-                clearInterval(pingInterval);
-                pingInterval = null;
-              }
-            }
-          }, 30000); // 30 seconds
-        }
+  // Forward the request to the Durable Object
+  const url = new URL(c.req.url);
+  url.pathname = "/ws";
 
-        const data: IncomingMessage = JSON.parse(event.data.toString());
-
-        // Handle pong responses from clients
-        if (data.type === "pong") {
-          // Client acknowledged our ping, nothing else to do
-          return;
-        }
-
-        if (data.type === "signup") {
-          console.log("Signup request recieved from", data.data.ip);
-
-          verify(data.data.signedMessage, data.data.publicKey)
-            .then((verified) => {
-              console.log(`Verified ${data.data.publicKey} with ${verified}`);
-
-              if (verified) {
-                signUpHandler(ws, data.data, env)
-                  .then((signUpData) => {
-                    console.log(`Validators: ${signUpData}`);
-                  })
-                  .catch((err) => console.log(`Error signing up`, err));
-              }
-            })
-            .catch((error) => {
-              console.error("Verification error:", error);
-            });
-        } else if (data.type === "validate") {
-          CALLBACKS[data.data.callbackId]?.(data);
-          delete CALLBACKS[data.data.callbackId];
-        }
-      },
-
-      onClose(_close, ws) {
-        // Clear the ping interval when connection closes
-        if (pingInterval) {
-          clearInterval(pingInterval);
-          pingInterval = null;
-        }
-        wsRef = null;
-        cleanUpValidator(ws);
-      },
-
-      onError(error) {
-        console.error("WebSocket error:", error);
-        // Clear the ping interval on error
-        if (pingInterval) {
-          clearInterval(pingInterval);
-          pingInterval = null;
-        }
-        wsRef = null;
-      },
-    };
-  }),
-);
+  return stub.fetch(url.toString(), c.req.raw);
+});
 
 export default {
   fetch: app.fetch,
@@ -421,6 +366,6 @@ export default {
   ) {
     console.log("Cron Processed");
 
-    ctx.waitUntil(sendReqToValidators(env));
+    ctx.waitUntil(sendReqToValidators(env, ctx));
   },
 };

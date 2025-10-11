@@ -16,26 +16,34 @@ export const CALLBACKS: {
 
 export const cleanUpValidator = (ws: WSContext<WebSocket>) => {
   const data = AVAILABLE_VALIDATORS.get(ws);
-  console.log(`Disconnected ${data?.validatorId}`);
-  AVAILABLE_VALIDATORS.delete(ws);
 
-  if (data) {
-    const pubKeySet = PUBKEY_TO_VALIDATORS.get(data.pubKey);
-    pubKeySet?.delete(ws);
-
-    if (pubKeySet?.size === 0) {
-      PUBKEY_TO_VALIDATORS.delete(data.pubKey);
-    }
+  if (!data) {
+    console.log("⚠️ Attempted to clean up unknown validator");
+    return;
   }
 
-  // Log available validators
-  console.log(
-    Array.from(
-      AVAILABLE_VALIDATORS.values().map((item) => {
-        return { id: item.validatorId, pk: item.pubKey };
-      }),
-    ),
-  );
+  console.log(`🔌 Validator disconnected: ${data.validatorId} (${data.pubKey.slice(0, 10)}...)`);
+
+  AVAILABLE_VALIDATORS.delete(ws);
+
+  const pubKeySet = PUBKEY_TO_VALIDATORS.get(data.pubKey);
+  pubKeySet?.delete(ws);
+
+  if (pubKeySet?.size === 0) {
+    PUBKEY_TO_VALIDATORS.delete(data.pubKey);
+  }
+
+  // Log updated validator state
+  console.log(`📊 Active validators after disconnect: ${AVAILABLE_VALIDATORS.size}`);
+
+  if (AVAILABLE_VALIDATORS.size > 0) {
+    console.log("📋 Remaining validators:");
+    Array.from(AVAILABLE_VALIDATORS.values()).forEach((item) => {
+      console.log(`  - ${item.validatorId.slice(0, 8)}... (${item.pubKey.slice(0, 10)}...)`);
+    });
+  } else {
+    console.log("⚠️ No active validators remaining");
+  }
 };
 
 export const addValidator = async (
@@ -71,5 +79,12 @@ export const addValidator = async (
       location: "",
       pendingPayouts: 0,
     });
+    console.log(`📝 Saved new validator to database: ${data.pubKey.slice(0, 10)}...`);
+  } else {
+    console.log(`📝 Validator already exists in database: ${data.pubKey.slice(0, 10)}...`);
   }
+
+  // 4. Log current validator state
+  console.log(`📊 Active validators: ${AVAILABLE_VALIDATORS.size}`);
+  console.log(`📊 Unique pubKeys: ${PUBKEY_TO_VALIDATORS.size}`);
 };
