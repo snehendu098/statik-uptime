@@ -14,22 +14,8 @@ import {
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useState, useEffect } from "react";
-import { getWebsiteStats } from "@/lib/api";
+import { getWebsiteStats, type WebsiteTick } from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
-
-// Tick interface matching hub API response
-interface Tick {
-  id: string;
-  status: "Good" | "Bad";
-  latency: number;
-  createdAt: string;
-  validator: {
-    id: string;
-    pubKey: string;
-    location: string;
-    ip: string;
-  } | null;
-}
 
 // WebsiteStats interface matching hub API response
 interface WebsiteStats {
@@ -46,7 +32,7 @@ interface WebsiteStats {
     uptimePercentage: number;
     averageLatency: number;
   };
-  recentTicks: Tick[];
+  recentTicks: WebsiteTick[];
 }
 
 const Page = () => {
@@ -56,6 +42,7 @@ const Page = () => {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [, setUpdateTrigger] = useState(0);
+  const [autoRefreshEnabled, setAutoRefreshEnabled] = useState(true);
 
   const fetchWebsiteData = async () => {
     if (!params.id || typeof params.id !== "string") {
@@ -116,6 +103,51 @@ const Page = () => {
     return () => clearInterval(interval);
   }, []);
 
+  // Auto-refresh based on checkIntervalMinutes after the most recent tick
+  useEffect(() => {
+    if (
+      !websiteStats ||
+      !autoRefreshEnabled ||
+      websiteStats.recentTicks.length === 0
+    ) {
+      return;
+    }
+
+    // Get the most recent tick (last item in array as it's sorted oldest to newest)
+    const mostRecentTick =
+      websiteStats.recentTicks[websiteStats.recentTicks.length - 1];
+    const lastCheckTime = new Date(mostRecentTick.createdAt).getTime();
+    const intervalMs = websiteStats.website.checkIntervalMinutes * 60 * 1000;
+    const nextCheckTime = lastCheckTime + intervalMs;
+    const now = Date.now();
+
+    // Add 10 second buffer to ensure new tick has been created
+    const bufferMs = 2 * 1000;
+    const msUntilNextCheck = nextCheckTime - now + bufferMs;
+
+    // If next check is overdue, refresh immediately
+    if (msUntilNextCheck <= 0) {
+      console.log("Check is overdue, refreshing immediately...");
+      fetchWebsiteData();
+      return;
+    }
+
+    console.log(
+      `Auto-refresh scheduled in ${Math.floor(msUntilNextCheck / 1000)} seconds`,
+    );
+
+    // Schedule auto-refresh
+    const timeoutId = setTimeout(() => {
+      console.log("Auto-refreshing data...");
+      fetchWebsiteData();
+    }, msUntilNextCheck);
+
+    // Cleanup timeout on unmount or when dependencies change
+    return () => {
+      clearTimeout(timeoutId);
+    };
+  }, [websiteStats, autoRefreshEnabled]);
+
   const handleRefresh = () => {
     fetchWebsiteData();
   };
@@ -147,7 +179,9 @@ const Page = () => {
       <div className="w-full h-[60vh] flex items-center justify-center">
         <div className="flex flex-col items-center gap-4">
           <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
-          <p className="text-sm text-muted-foreground">Loading website data...</p>
+          <p className="text-sm text-muted-foreground">
+            Loading website data...
+          </p>
         </div>
       </div>
     );
@@ -169,8 +203,12 @@ const Page = () => {
     );
   }
 
-  const lastChecked = websiteStats.recentTicks[websiteStats.recentTicks.length - 1]?.createdAt
-    ? formatTimeSince(websiteStats.recentTicks[websiteStats.recentTicks.length - 1].createdAt)
+  const lastChecked = websiteStats.recentTicks[
+    websiteStats.recentTicks.length - 1
+  ]?.createdAt
+    ? formatTimeSince(
+        websiteStats.recentTicks[websiteStats.recentTicks.length - 1].createdAt,
+      )
     : "Never";
 
   return (

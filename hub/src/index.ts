@@ -344,6 +344,87 @@ app.get("/website/:websiteId", async (c) => {
   }
 });
 
+// Update user credits endpoint
+app.post("/credits", async (c) => {
+  try {
+    const body = await c.req.json<{
+      pubKey: Address;
+      creditAmount: number;
+      transactionHash: string;
+      signedMessage: `0x${string}`;
+    }>();
+
+    const { pubKey, creditAmount, transactionHash, signedMessage } = body;
+
+    // Validate input
+    if (!pubKey || !creditAmount || !transactionHash || !signedMessage) {
+      return c.json(
+        {
+          success: false,
+          error: "Missing required fields: pubKey, creditAmount, transactionHash, signedMessage",
+        },
+        400,
+      );
+    }
+
+    // Verify the signature
+    const verified = await verifyMessage({
+      address: pubKey,
+      message: `Add ${creditAmount} credits`,
+      signature: signedMessage,
+    });
+
+    if (!verified) {
+      return c.json(
+        {
+          success: false,
+          error: "Invalid signature",
+        },
+        401,
+      );
+    }
+
+    // Get database client
+    const db = getDbClient(c.env);
+
+    // Get or create user
+    const user = await getOrCreateUser(db, pubKey);
+
+    // Update user credits (add to existing credits)
+    const updatedCredits = (user.credits || 0) + creditAmount;
+
+    await db
+      .update(users)
+      .set({ credits: updatedCredits })
+      .where(eq(users.id, user.id));
+
+    console.log(
+      `Updated credits for user ${user.id}: ${user.credits || 0} -> ${updatedCredits} (added ${creditAmount}) via transaction ${transactionHash}`,
+    );
+
+    return c.json({
+      success: true,
+      data: {
+        userId: user.id,
+        pubKey: user.pubKey,
+        previousCredits: user.credits || 0,
+        addedCredits: creditAmount,
+        newCredits: updatedCredits,
+        transactionHash,
+      },
+    });
+  } catch (error) {
+    console.error("Error updating credits:", error);
+    return c.json(
+      {
+        success: false,
+        error: error instanceof Error ? error.message : "Unknown error",
+      },
+      500,
+    );
+  }
+});
+
 // WebSocket route - proxy to Durable Object
 app.get("/ws", async (c) => {
   // Get Durable Object stub using a fixed ID (single instance for all validators)

@@ -2,18 +2,75 @@
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { contract } from "@/lib/thirdweb-client";
+import { updateCredits } from "@/lib/api";
 import { PlusIcon } from "lucide-react";
 import { useState } from "react";
+import { prepareContractCall, sendTransaction, toWei } from "thirdweb";
+import { useActiveAccount } from "thirdweb/react";
+import { useRouter } from "next/navigation";
 
 interface RemainingCreditsCardProps {
   credits?: number;
+  fetch: () => Promise<void>;
 }
 
 export function RemainingCreditsCard({
+  fetch,
   credits = 0,
 }: RemainingCreditsCardProps) {
   const [showBuyCredits, setShowBuyCredits] = useState(false);
   const [creditAmount, setCreditAmount] = useState<string>("1000");
+  const [isLoading, setIsLoading] = useState(false);
+  const account = useActiveAccount();
+  const router = useRouter();
+
+  const handleClick = async () => {
+    if (account) {
+      try {
+        setIsLoading(true);
+
+        const transaction = prepareContractCall({
+          contract,
+          method:
+            "function deposit(uint256 creditAmount) payable returns (uint256 creditsReceived)",
+          params: [BigInt(creditAmount)],
+          value: toWei(String(Number(creditAmount) / 10000)),
+        });
+
+        const txn = await sendTransaction({
+          transaction,
+          account,
+        });
+
+        if (txn.transactionHash) {
+          // Sign a message to verify ownership
+          const message = `Add ${creditAmount} credits`;
+          const signedMessage = await account.signMessage({ message });
+
+          // Save creditAmount to database
+          const result = await updateCredits({
+            pubKey: account.address,
+            creditAmount: Number(creditAmount),
+            transactionHash: txn.transactionHash,
+            signedMessage,
+          });
+
+          if (result.success) {
+            console.log("Credits updated successfully:", result.data);
+            // Optionally trigger a refresh of the credits display
+            await fetch();
+          } else {
+            console.error("Failed to update credits:", result.error);
+          }
+        }
+      } catch (error) {
+        console.error("Error purchasing credits:", error);
+      } finally {
+        setIsLoading(false);
+      }
+    }
+  };
 
   return (
     <div className="p-6 border bg-card rounded-4xl overflow-hidden transition-all duration-300 ease-in-out">
@@ -56,12 +113,10 @@ export function RemainingCreditsCard({
                 />
                 <Button
                   className="rounded-xl"
-                  onClick={() => {
-                    // Handle buy credits
-                    console.log("Buy credits:", creditAmount);
-                  }}
+                  onClick={handleClick}
+                  disabled={isLoading}
                 >
-                  Buy
+                  {isLoading ? "Processing..." : "Buy"}
                 </Button>
               </div>
             </div>

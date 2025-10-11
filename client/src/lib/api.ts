@@ -55,7 +55,7 @@ export interface WebsiteTick {
     pubKey: string;
     location: string;
     ip: string;
-  };
+  } | null;
 }
 
 export interface GetWebsiteStatsResponse {
@@ -153,6 +153,52 @@ export async function getWebsiteStats(
     return result;
   } catch (error) {
     console.error("Error fetching website stats:", error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : "Unknown error",
+    };
+  }
+}
+
+export interface UpdateCreditsRequest {
+  pubKey: string;
+  creditAmount: number;
+  transactionHash: string;
+  signedMessage: string;
+}
+
+export interface UpdateCreditsResponse {
+  success: boolean;
+  data?: {
+    userId: string;
+    pubKey: string;
+    previousCredits: number;
+    addedCredits: number;
+    newCredits: number;
+    transactionHash: string;
+  };
+  error?: string;
+}
+
+/**
+ * Update user credits after a successful transaction
+ */
+export async function updateCredits(
+  data: UpdateCreditsRequest
+): Promise<UpdateCreditsResponse> {
+  try {
+    const response = await fetch(`${HUB_API_URL}/credits`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(data),
+    });
+
+    const result = await response.json();
+    return result;
+  } catch (error) {
+    console.error("Error updating credits:", error);
     return {
       success: false,
       error: error instanceof Error ? error.message : "Unknown error",

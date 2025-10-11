@@ -14,34 +14,33 @@ export default function Home() {
   const [credits, setCredits] = useState<number>(0);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
+  const fetchWebsites = async () => {
+    if (!account?.address) {
+      setWebsites([]);
+      return;
+    }
+
+    setIsLoading(true);
+    setError(null);
+
+    try {
+      const response = await getWebsitesByPubKey(account.address);
+
+      if (response.success && response.data) {
+        setWebsites(response.data.websites);
+        setCredits(response.data.user.credits);
+      } else {
+        setError(response.error || "Failed to fetch websites");
+      }
+    } catch (err) {
+      console.error("Error fetching websites:", err);
+      setError("Failed to fetch websites");
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   useEffect(() => {
-    const fetchWebsites = async () => {
-      if (!account?.address) {
-        setWebsites([]);
-        return;
-      }
-
-      setIsLoading(true);
-      setError(null);
-
-      try {
-        const response = await getWebsitesByPubKey(account.address);
-
-        if (response.success && response.data) {
-          setWebsites(response.data.websites);
-          setCredits(response.data.user.credits);
-        } else {
-          setError(response.error || "Failed to fetch websites");
-        }
-      } catch (err) {
-        console.error("Error fetching websites:", err);
-        setError("Failed to fetch websites");
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
     fetchWebsites();
   }, [account?.address]);
 
@@ -70,7 +69,7 @@ export default function Home() {
         <div className="w-full grid grid-cols-6 gap-6">
           <WebsitesTable websites={websites} />
           <div className="col-span-2 space-y-6">
-            <RemainingCreditsCard credits={credits} />
+            <RemainingCreditsCard fetch={fetchWebsites} credits={credits} />
             <CreateMonitorCard />
           </div>
         </div>
