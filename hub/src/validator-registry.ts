@@ -60,13 +60,31 @@ export class ValidatorRegistry extends DurableObject<AppEnv> {
       );
       console.log(`[INFO] Validators in memory map: ${this.validators.size}`);
 
-      // If memory map is empty after hibernation, we need validators to re-identify
+      // If memory map is empty after hibernation, rebuild from storage immediately
       if (this.validators.size === 0 && allWebSockets.length > 0) {
         console.log(
-          `[WARNING] Memory cleared after hibernation. Sending ping to trigger re-identification`,
+          `[WARNING] Memory cleared after hibernation. Rebuilding from storage...`,
         );
 
-        // Send ping to all WebSockets to trigger validators to respond with their ID
+        // Rebuild memory map from persistent storage
+        const validatorEntries = await this.ctx.storage.list({
+          prefix: "validator:",
+        });
+
+        console.log(`[INFO] Found ${validatorEntries.size} validators in storage`);
+
+        // We can't map WebSocket objects from storage alone, but we can still
+        // return the validator list for the cron job to use
+        const validatorList = Array.from(validatorEntries.values()).map((v) => {
+          const data = v as { validatorId: string; pubKey: string; ip: string };
+          return {
+            validatorId: data.validatorId,
+            pubKey: data.pubKey,
+            ip: data.ip,
+          };
+        });
+
+        // Send ping to all WebSockets to trigger full memory reconstruction
         for (const ws of allWebSockets) {
           try {
             ws.send(JSON.stringify({ type: "ping" }));
@@ -75,14 +93,14 @@ export class ValidatorRegistry extends DurableObject<AppEnv> {
           }
         }
 
-        // For now, return empty list. Validators will re-identify on next cron cycle
         console.log(
-          `[INFO] Returning empty list. Validators will re-identify on next message`,
+          `[SUCCESS] Rebuilt validator list from storage: ${validatorList.length} validators`,
         );
+
         return Response.json({
           success: true,
-          count: 0,
-          validators: [],
+          count: validatorList.length,
+          validators: validatorList,
         });
       }
 
@@ -150,17 +168,73 @@ export class ValidatorRegistry extends DurableObject<AppEnv> {
         }
       }
 
+      // If not found in memory (after hibernation), try to rebuild from storage
       if (!targetWs) {
-        console.log(`[ERROR] Validator ${body.validatorId} not found`);
-        // Clean up callback since we can't send the request
-        await this.ctx.storage.delete(`callback:${body.callbackId}`);
-        return Response.json(
-          {
-            success: false,
-            error: "Validator not found or disconnected",
-          },
-          { status: 404 },
+        console.log(
+          `[WARNING] Validator ${body.validatorId} not in memory map - attempting recovery`,
         );
+
+        // Check if validator exists in storage
+        const storedValidator = (await this.ctx.storage.get(
+          `validator:${body.validatorId}`,
+        )) as { validatorId: string; pubKey: string; ip: string } | undefined;
+
+        if (!storedValidator) {
+          console.log(
+            `[ERROR] Validator ${body.validatorId} not found in storage either`,
+          );
+          await this.ctx.storage.delete(`callback:${body.callbackId}`);
+          return Response.json(
+            {
+              success: false,
+              error: "Validator not found or disconnected",
+            },
+            { status: 404 },
+          );
+        }
+
+        // Validator exists in storage, so it should have an active WebSocket
+        // Get all WebSockets and send ping to trigger re-identification
+        const allWebSockets = this.ctx.getWebSockets();
+        console.log(
+          `[INFO] Sending ping to ${allWebSockets.length} WebSockets to locate validator`,
+        );
+
+        for (const ws of allWebSockets) {
+          try {
+            ws.send(JSON.stringify({ type: "ping" }));
+          } catch (error) {
+            console.error(`[ERROR] Failed to send ping:`, error);
+          }
+        }
+
+        // Wait briefly for pong responses to rebuild memory map
+        await new Promise((resolve) => setTimeout(resolve, 500));
+
+        // Try to find validator again after pong responses
+        for (const [ws, data] of this.validators.entries()) {
+          if (data.validatorId === body.validatorId) {
+            targetWs = ws;
+            console.log(
+              `[SUCCESS] Validator ${body.validatorId} found after recovery`,
+            );
+            break;
+          }
+        }
+
+        if (!targetWs) {
+          console.log(
+            `[ERROR] Validator ${body.validatorId} still not found after recovery attempt`,
+          );
+          await this.ctx.storage.delete(`callback:${body.callbackId}`);
+          return Response.json(
+            {
+              success: false,
+              error: "Validator not responding - may be disconnected",
+            },
+            { status: 404 },
+          );
+        }
       }
 
       // Send validation request to validator
