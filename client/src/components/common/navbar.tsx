@@ -22,7 +22,7 @@ const Navbar = () => {
         </div>
         <ConnectButton
           client={client}
-          chain={defineChain(2484)}
+          chain={defineChain(39)}
           connectButton={{
             className:
               "!bg-primary !rounded-2xl !hover:bg-primary/40 !text-white",
