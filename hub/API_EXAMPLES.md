@@ -135,7 +135,8 @@ curl -X POST https://your-worker.workers.dev/website \
 2. **User Creation:** If a user with the given `pubKey` doesn't exist, a new user is created
 3. **Website Creation:** A new website entry is created linked to the user
 4. **Check Intervals:** The `checkIntervals` field determines when the next monitoring check should occur
-5. **Response:** Returns the created website details including IDs and timestamps
+5. **Validator Selection:** When a check is due, the hub uses the Fisher-Yates shuffle algorithm to randomly select 3 validators from the active pool
+6. **Response:** Returns the created website details including IDs and timestamps
 
 ---
 
