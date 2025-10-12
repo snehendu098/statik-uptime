@@ -20,14 +20,14 @@ async function connect() {
   // const ws = new WebSocket("ws://localhost:8787/ws");
 
   ws.onopen = async () => {
-    console.log("🔗 Connected to hub server");
-    console.log(`🔑 Validator address: ${account.address}`);
+    console.log("[INFO] Connected to hub server");
+    console.log(`[INFO] Validator address: ${account.address}`);
     reconnectAttempts = 0; // Reset reconnect counter on successful connection
 
     const callbackId = randomUUIDv7().toString();
     CALLBACKS[callbackId] = (data: any) => {
       validatorId = data.validatorId;
-      console.log(`✅ Registered as validator with ID: ${validatorId}`);
+      console.log(`[SUCCESS] Registered as validator with ID: ${validatorId}`);
     };
 
     const signedMessage = await account.signMessage({
@@ -46,7 +46,7 @@ async function connect() {
       }),
     );
 
-    console.log("📤 Signup request sent to hub");
+    console.log("[INFO] Signup request sent to hub");
   };
 
   ws.onmessage = async (event) => {
@@ -59,15 +59,15 @@ async function connect() {
     }
 
     if (data.type === "signup") {
-      console.log("📥 Signup confirmation received from hub");
+      console.log("[INFO] Signup confirmation received from hub");
       CALLBACKS[data.data.callbackId]?.(data.data);
       delete CALLBACKS[data.data.callbackId];
     } else if (data.type === "validate") {
       const { callbackId, url, websiteId } = data.data;
 
-      console.log(`\n🔍 Validation request received`);
-      console.log(`  URL: ${url}`);
-      console.log(`  Website ID: ${websiteId}`);
+      console.log(`\n[VALIDATE] Validation request received`);
+      console.log(`[VALIDATE] URL: ${url}`);
+      console.log(`[VALIDATE] Website ID: ${websiteId}`);
 
       const signedMessage = await account.signMessage({
         message: `Replying to ${callbackId}`,
@@ -80,8 +80,8 @@ async function connect() {
         const status = res.status;
         const result = status === 200 ? "Good" : "Bad";
 
-        console.log(`  ✅ Status: ${status} (${result})`);
-        console.log(`  ⏱️  Latency: ${latency}ms`);
+        console.log(`[VALIDATE] Status: ${status} (${result})`);
+        console.log(`[VALIDATE] Latency: ${latency}ms`);
 
         ws.send(
           JSON.stringify({
@@ -98,9 +98,9 @@ async function connect() {
         );
       } catch (error) {
         const latency = Date.now() - startTime;
-        console.log(`  ❌ Failed to validate (error)`);
-        console.error(`  Error: ${error}`);
-        console.log(`  ⏱️  Latency: ${latency}ms`);
+        console.log(`[ERROR] Failed to validate`);
+        console.error(`[ERROR] ${error}`);
+        console.log(`[VALIDATE] Latency: ${latency}ms`);
 
         ws.send(
           JSON.stringify({
@@ -120,12 +120,12 @@ async function connect() {
   };
 
   ws.onclose = () => {
-    console.log("🔌 Disconnected from hub server");
+    console.log("[INFO] Disconnected from hub server");
     reconnect();
   };
 
   ws.onerror = (error) => {
-    console.error("❌ WebSocket error:", error);
+    console.error("[ERROR] WebSocket error:", error);
   };
 }
 
@@ -134,7 +134,7 @@ function reconnect() {
   // Exponential backoff: 1s, 2s, 4s, 8s, 16s, 30s (max)
   const delay = Math.min(1000 * Math.pow(2, reconnectAttempts - 1), MAX_RECONNECT_DELAY);
 
-  console.log(`🔄 Reconnecting in ${delay / 1000}s (attempt ${reconnectAttempts})...`);
+  console.log(`[INFO] Reconnecting in ${delay / 1000}s (attempt ${reconnectAttempts})...`);
 
   setTimeout(() => {
     connect();

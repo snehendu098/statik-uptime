@@ -499,9 +499,44 @@ export class ValidatorRegistry extends DurableObject<AppEnv> {
     } else {
       console.log(`⚠️ WebSocket closed but no validator data found in memory`);
       // After hibernation, we might not have the validator in memory
-      // Check storage and WebSockets to find it
+      // CRITICAL: We need to find and delete the orphaned storage entry
+
       const allWebSockets = this.ctx.getWebSockets();
       console.log(`   - Total WebSockets still connected: ${allWebSockets.length}`);
+
+      // Get all validator entries from storage
+      const storageEntries = await this.ctx.storage.list({ prefix: "validator:" });
+      console.log(`   - Validator entries in storage: ${storageEntries.size}`);
+
+      // If we have more storage entries than active WebSockets, clean up orphans
+      if (storageEntries.size > allWebSockets.length) {
+        console.log(`🧹 Cleaning up orphaned validator entries...`);
+
+        // Create a Set of all storage keys for validators that might still be connected
+        // We can't perfectly match WebSocket to validatorId after hibernation,
+        // so we'll remove ALL entries and let active validators re-register on next message
+        let cleanupCount = 0;
+
+        for (const [key, value] of storageEntries.entries()) {
+          const validatorData = value as { validatorId: string; pubKey: string; ip: string };
+
+          // Check if this validator's WebSocket is still in the active list
+          // Since we can't match perfectly, we'll check if ANY WebSocket exists
+          // If closing WebSocket and storage entries exceed active sockets, clean up
+          if (allWebSockets.length < storageEntries.size) {
+            await this.ctx.storage.delete(key);
+            cleanupCount++;
+            console.log(`   - Removed orphaned validator: ${validatorData.validatorId}`);
+
+            // Only remove one entry per disconnect to avoid removing active validators
+            break;
+          }
+        }
+
+        if (cleanupCount > 0) {
+          console.log(`✅ Cleaned up ${cleanupCount} orphaned validator entries`);
+        }
+      }
     }
   }
 
@@ -510,7 +545,7 @@ export class ValidatorRegistry extends DurableObject<AppEnv> {
    */
   async webSocketError(ws: WebSocket, error: unknown): Promise<void> {
     console.error("❌ WebSocket error:", error);
-    await this.webSocketClose(ws);
+    await this.webSocketClose(ws, 1006, "Error occurred", false);
   }
 
   /**
@@ -533,6 +568,27 @@ export class ValidatorRegistry extends DurableObject<AppEnv> {
       } catch (error) {
         console.error(`Failed to send ping to WebSocket:`, error);
       }
+    }
+
+    // 1.5. Clean up orphaned validator entries (when storage > active WebSockets)
+    const validatorEntries = await this.ctx.storage.list({ prefix: "validator:" });
+    if (validatorEntries.size > allWebSockets.length) {
+      console.log(`🧹 Orphaned validators detected: ${validatorEntries.size} in storage vs ${allWebSockets.length} active WebSockets`);
+
+      // Remove excess entries (orphaned ones)
+      const entriesToRemove = validatorEntries.size - allWebSockets.length;
+      let removedCount = 0;
+
+      for (const [key, value] of validatorEntries.entries()) {
+        if (removedCount >= entriesToRemove) break;
+
+        const validatorData = value as { validatorId: string; pubKey: string; ip: string };
+        await this.ctx.storage.delete(key);
+        removedCount++;
+        console.log(`   - Removed orphaned validator: ${validatorData.validatorId.slice(0, 8)}...`);
+      }
+
+      console.log(`✅ Cleaned up ${removedCount} orphaned validator entries`);
     }
 
     // 2. Clean up old validation results (older than 2 minutes) - legacy, should be empty now
