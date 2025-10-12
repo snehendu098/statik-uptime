@@ -23,7 +23,6 @@ export function RemainingCreditsCard({
   const [creditAmount, setCreditAmount] = useState<string>("1000");
   const [isLoading, setIsLoading] = useState(false);
   const account = useActiveAccount();
-  const router = useRouter();
 
   const handleClick = async () => {
     if (account) {

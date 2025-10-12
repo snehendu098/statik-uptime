@@ -18,7 +18,7 @@ import { createWebsite } from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
 
 type IntervalType = "1m" | "5m" | "10m" | "1h" | "custom";
-type TimeUnit = "seconds" | "minutes" | "hours" | "days";
+type TimeUnit = "minutes" | "hours" | "days";
 
 export function CreateMonitorCard() {
   const [selectedInterval, setSelectedInterval] = useState<IntervalType>("5m");
@@ -35,8 +35,6 @@ export function CreateMonitorCard() {
     if (selectedInterval === "custom") {
       const value = parseInt(customValue) || 5;
       switch (customUnit) {
-        case "seconds":
-          return Math.max(1, Math.round(value / 60));
         case "minutes":
           return value;
         case "hours":
@@ -97,7 +95,10 @@ export function CreateMonitorCard() {
     try {
       // Format URL if needed
       let formattedUrl = url.trim();
-      if (!formattedUrl.startsWith("http://") && !formattedUrl.startsWith("https://")) {
+      if (
+        !formattedUrl.startsWith("http://") &&
+        !formattedUrl.startsWith("https://")
+      ) {
         formattedUrl = `https://${formattedUrl}`;
       }
 
@@ -146,7 +147,8 @@ export function CreateMonitorCard() {
       console.error("Error creating monitor:", error);
       toast({
         title: "Error",
-        description: error instanceof Error ? error.message : "Failed to create monitor",
+        description:
+          error instanceof Error ? error.message : "Failed to create monitor",
         variant: "destructive",
       });
     } finally {
@@ -246,7 +248,6 @@ export function CreateMonitorCard() {
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="seconds">Seconds</SelectItem>
                       <SelectItem value="minutes">Minutes</SelectItem>
                       <SelectItem value="hours">Hours</SelectItem>
                       <SelectItem value="days">Days</SelectItem>
