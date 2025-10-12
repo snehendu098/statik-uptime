@@ -122,6 +122,23 @@ U2U's DAG-based architecture is essential for Statik's real-time requirements:
 - **Network**: U2U Mainnet
 - **Tools**: Viem for contract interactions
 - **Standards**: ERC20-compatible credit system
+- **Contract Address**: `0x9Fe9004AecD7eE38342EfAfA3feBaF3AE3eDE0A6`
+- **Explorer**: [View on U2U Scan](https://u2uscan.xyz/address/0x9Fe9004AecD7eE38342EfAfA3feBaF3AE3eDE0A6)
+
+## Smart Contract Deployment
+
+The Statik smart contract is deployed on the U2U Mainnet:
+
+- **Contract Address**: `0x9Fe9004AecD7eE38342EfAfA3feBaF3AE3eDE0A6`
+- **Network**: U2U Mainnet
+- **Explorer**: [View on U2U Scan](https://u2uscan.xyz/address/0x9Fe9004AecD7eE38342EfAfA3feBaF3AE3eDE0A6)
+
+The contract handles:
+- Validator registry and staking (1000 U2U stake requirement)
+- Credit system for website monitoring
+- Reward distribution to validators
+- Slashing mechanism for misbehavior
+- Immutable audit log of monitoring activities
 
 ## Project Structure
 

@@ -2,6 +2,16 @@
 
 Run validators to earn rewards by monitoring website uptime and performance.
 
+## Smart Contract
+
+The Statik smart contract is deployed on the U2U Mainnet:
+
+- **Contract Address**: `0x9Fe9004AecD7eE38342EfAfA3feBaF3AE3eDE0A6`
+- **Network**: U2U Mainnet
+- **Explorer**: [View on U2U Scan](https://u2uscan.xyz/address/0x9Fe9004AecD7eE38342EfAfA3feBaF3AE3eDE0A6)
+
+Validators interact with this contract for staking (1000 U2U required) and earning rewards (9.5 U2U per successful check).
+
 ## 🚀 Quick Start (Recommended)
 
 ### One-Command Installation

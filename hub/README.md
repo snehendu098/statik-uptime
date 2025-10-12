@@ -2,6 +2,14 @@
 
 The hub server is the coordination layer for the Statik network, built on Cloudflare Workers with Durable Objects for persistent WebSocket connections.
 
+## Smart Contract
+
+The Statik smart contract is deployed on the U2U Mainnet:
+
+- **Contract Address**: `0x9Fe9004AecD7eE38342EfAfA3feBaF3AE3eDE0A6`
+- **Network**: U2U Mainnet
+- **Explorer**: [View on U2U Scan](https://u2uscan.xyz/address/0x9Fe9004AecD7eE38342EfAfA3feBaF3AE3eDE0A6)
+
 ## Features
 
 - **WebSocket Coordination** - Maintains persistent connections to all active validators
