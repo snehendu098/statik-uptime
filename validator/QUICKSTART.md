@@ -3,7 +3,7 @@
 ## Installation
 
 ```bash
-curl -fsSL https://statik.network/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/snehendu098/statik-uptime/refs/heads/main/validator/scripts/install.sh | bash
 ```
 
 Or for local development:
@@ -72,7 +72,7 @@ statik remove main
 ### Example 1: Single Key, Multiple Validators
 ```bash
 # Install
-curl -fsSL https://statik.network/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/snehendu098/statik-uptime/refs/heads/main/validator/scripts/install.sh | bash
 
 # Create 5 validators with one key
 statik add main --instances 5
@@ -139,7 +139,13 @@ statik logs node1
 ```
 ~/.statik/
 ├── config.json           # Your encrypted keys
-└── compose/
+├── validator/            # Validator source code
+│   ├── Dockerfile
+│   ├── index.ts
+│   ├── account.ts
+│   ├── types.ts
+│   └── package.json
+└── compose/              # Docker Compose files
     ├── main.yml         # Docker Compose for 'main'
     ├── node1.yml        # Docker Compose for 'node1'
     └── node2.yml        # Docker Compose for 'node2'
@@ -147,15 +153,45 @@ statik logs node1
 
 ## Troubleshooting
 
+### Issue: "Dockerfile: no such file or directory"
+
+**Cause:** Validator files weren't downloaded properly during installation.
+
+**Solution:**
+```bash
+# Re-run the installer to download all required files
+curl -fsSL https://raw.githubusercontent.com/snehendu098/statik-uptime/refs/heads/main/validator/scripts/install.sh | bash
+```
+
+The installer will:
+- Download validator source code to `~/.statik/validator/`
+- Build the Docker image automatically
+- Install the CLI to `/usr/local/bin/statik`
+
 ### Docker not running
 ```bash
 # Install Docker Desktop first
-# Then run: statik add main
+# macOS: https://docs.docker.com/desktop/install/mac-install/
+# Linux: https://docs.docker.com/desktop/install/linux-install/
+# Then start Docker Desktop and run: statik add main
 ```
 
 ### View logs for debugging
 ```bash
 statik logs <profile-name>
+```
+
+### Manually rebuild Docker image
+```bash
+# If automatic build fails, rebuild manually
+cd ~/.statik/validator
+docker build -t statik-validator:latest .
+```
+
+### Private key format error
+```bash
+# Private key must be: 0x + 64 hex characters
+# Example: 0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef
 ```
 
 ### Reset everything
@@ -174,6 +210,7 @@ statik help
 
 All your validator configuration is stored in:
 - **Config**: `~/.statik/config.json`
+- **Validator Code**: `~/.statik/validator/`
 - **Docker Compose files**: `~/.statik/compose/`
 
 ## Security

@@ -7,15 +7,17 @@ Run validators to earn rewards by monitoring website uptime and performance.
 ### One-Command Installation
 
 ```bash
-curl -fsSL https://statik.network/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/snehendu098/statik-uptime/refs/heads/main/validator/scripts/install.sh | bash
 ```
 
 Or for local development:
+
 ```bash
 cd validator/scripts && ./install.sh
 ```
 
 This will:
+
 - ✅ Check for Docker installation
 - ✅ Install required dependencies (jq)
 - ✅ Install the `statik` CLI globally
@@ -37,6 +39,7 @@ statik list
 ```
 
 Output:
+
 ```
 PROFILE          INSTANCES    STATUS
 ────────────────────────────────────────
@@ -147,7 +150,13 @@ All configuration is stored in `~/.statik/`:
 ```
 ~/.statik/
 ├── config.json              # Encrypted keys and profile settings
-└── compose/
+├── validator/               # Validator source code
+│   ├── Dockerfile
+│   ├── index.ts
+│   ├── account.ts
+│   ├── types.ts
+│   └── package.json
+└── compose/                 # Docker Compose files
     ├── main.yml            # Docker Compose for 'main' profile
     ├── node1.yml           # Docker Compose for 'node1' profile
     └── node2.yml           # Docker Compose for 'node2' profile
@@ -170,6 +179,7 @@ bun run index.ts
 ```
 
 Create a `.env` file with your private key:
+
 ```
 PRIVATE_KEY=0x...
 ```
@@ -204,17 +214,20 @@ statik help
 ## 🐛 Troubleshooting
 
 ### Docker not running
+
 ```bash
 # Start Docker Desktop and try again
 statik add main
 ```
 
 ### View container logs
+
 ```bash
 statik logs <profile-name>
 ```
 
 ### Remove all validators
+
 ```bash
 statik stop-all
 statik remove <profile-name>

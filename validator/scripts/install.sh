@@ -90,6 +90,10 @@ fi
 
 echo -e "${GREEN}SUCCESS: jq is installed${NC}"
 
+# Setup validator directory
+VALIDATOR_HOME="$HOME/.statik/validator"
+mkdir -p "$VALIDATOR_HOME"
+
 # Download CLI script
 echo -e "${BLUE}Installing Statik CLI...${NC}"
 
@@ -101,10 +105,34 @@ if [ -f "$CLI_SCRIPT" ]; then
     # Local installation (for development)
     echo -e "${BLUE}Installing from local files...${NC}"
     sudo cp "$CLI_SCRIPT" "$INSTALL_DIR/$CLI_NAME"
+
+    # Copy validator files
+    VALIDATOR_DIR="$(dirname "$SCRIPT_DIR")"
+    if [ -f "$VALIDATOR_DIR/Dockerfile" ]; then
+        cp "$VALIDATOR_DIR/Dockerfile" "$VALIDATOR_HOME/"
+        cp "$VALIDATOR_DIR/.dockerignore" "$VALIDATOR_HOME/" 2>/dev/null || true
+        cp "$VALIDATOR_DIR/package.json" "$VALIDATOR_HOME/" 2>/dev/null || true
+        cp "$VALIDATOR_DIR/bun.lockb" "$VALIDATOR_HOME/" 2>/dev/null || true
+        cp -r "$VALIDATOR_DIR/src" "$VALIDATOR_HOME/" 2>/dev/null || true
+        cp "$VALIDATOR_DIR/index.ts" "$VALIDATOR_HOME/" 2>/dev/null || true
+        cp "$VALIDATOR_DIR/account.ts" "$VALIDATOR_HOME/" 2>/dev/null || true
+        cp "$VALIDATOR_DIR/types.ts" "$VALIDATOR_HOME/" 2>/dev/null || true
+        cp "$VALIDATOR_DIR/tsconfig.json" "$VALIDATOR_HOME/" 2>/dev/null || true
+    fi
 else
     # Remote installation (for production)
     echo -e "${BLUE}Downloading from GitHub...${NC}"
     sudo curl -fsSL "$CLI_URL" -o "$INSTALL_DIR/$CLI_NAME"
+
+    # Download validator files
+    echo -e "${BLUE}Downloading validator files...${NC}"
+    curl -fsSL "$REPO_URL/validator/Dockerfile" -o "$VALIDATOR_HOME/Dockerfile"
+    curl -fsSL "$REPO_URL/validator/.dockerignore" -o "$VALIDATOR_HOME/.dockerignore"
+    curl -fsSL "$REPO_URL/validator/package.json" -o "$VALIDATOR_HOME/package.json"
+    curl -fsSL "$REPO_URL/validator/index.ts" -o "$VALIDATOR_HOME/index.ts"
+    curl -fsSL "$REPO_URL/validator/account.ts" -o "$VALIDATOR_HOME/account.ts"
+    curl -fsSL "$REPO_URL/validator/types.ts" -o "$VALIDATOR_HOME/types.ts"
+    curl -fsSL "$REPO_URL/validator/tsconfig.json" -o "$VALIDATOR_HOME/tsconfig.json"
 fi
 
 # Make executable
@@ -118,19 +146,16 @@ else
     exit 1
 fi
 
-# Build Docker image if in local dev
-if [ -f "$SCRIPT_DIR/statik-cli.sh" ]; then
-    VALIDATOR_DIR="$(dirname "$SCRIPT_DIR")"
-    if [ -f "$VALIDATOR_DIR/Dockerfile" ]; then
-        echo -e "${BLUE}Building validator Docker image...${NC}"
-        docker build -t statik-validator:latest "$VALIDATOR_DIR"
-        echo -e "${GREEN}SUCCESS: Docker image built${NC}"
-    fi
+# Build Docker image
+if [ -f "$VALIDATOR_HOME/Dockerfile" ]; then
+    echo -e "${BLUE}Building validator Docker image...${NC}"
+    docker build -t statik-validator:latest "$VALIDATOR_HOME"
+    echo -e "${GREEN}SUCCESS: Docker image built${NC}"
 fi
 
 echo ""
 echo -e "${GREEN}╔════════════════════════════════════════╗${NC}"
-echo -e "${GREEN}║     Installation Complete!           ║${NC}"
+echo -e "${GREEN}║     Installation Complete!             ║${NC}"
 echo -e "${GREEN}╔════════════════════════════════════════╗${NC}"
 echo ""
 echo -e "${YELLOW}Quick Start:${NC}"

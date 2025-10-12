@@ -85,8 +85,15 @@ EOF
 ensure_docker_image() {
     if ! docker image inspect "$DOCKER_IMAGE" &> /dev/null; then
         echo -e "${BLUE}Building validator Docker image...${NC}"
-        local script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-        local validator_dir="$(dirname "$script_dir")"
+        local validator_dir="$HOME/.statik/validator"
+
+        if [ ! -f "$validator_dir/Dockerfile" ]; then
+            echo -e "${RED}ERROR: Validator files not found at $validator_dir${NC}"
+            echo -e "${YELLOW}Please run the installer again:${NC}"
+            echo -e "  curl -fsSL https://raw.githubusercontent.com/snehendu098/statik-uptime/refs/heads/main/validator/scripts/install.sh | bash"
+            exit 1
+        fi
+
         docker build -t "$DOCKER_IMAGE" "$validator_dir"
         echo -e "${GREEN}SUCCESS: Image built successfully${NC}"
     fi
