@@ -54,7 +54,14 @@ async function connect() {
 
     // Handle ping messages from server to keep connection alive
     if (data.type === "ping") {
-      ws.send(JSON.stringify({ type: "pong" }));
+      ws.send(
+        JSON.stringify({
+          type: "pong",
+          data: {
+            validatorId,
+          },
+        }),
+      );
       return;
     }
 

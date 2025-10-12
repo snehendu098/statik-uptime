@@ -30,20 +30,20 @@ const selectRandomValidators = (
 
 
 export const sendReqToValidators = async (env: Env, ctx: ExecutionContext) => {
-  console.log("🔄 Cron job starting - checking for websites to validate...");
+  console.log("[INFO] Cron job starting - checking for websites to validate");
   const db = getDbClient(env);
   const currentTime = new Date();
 
   // Get Durable Object stub to access validators
   const id = env.VALIDATOR_REGISTRY.idFromName("global");
   const stub = env.VALIDATOR_REGISTRY.get(id);
-  console.log("🔗 Connected to Durable Object");
+  console.log("[INFO] Connected to Durable Object");
 
   // Get list of active validators from Durable Object
-  console.log("📡 Fetching active validators from Durable Object...");
+  console.log("[INFO] Fetching active validators from Durable Object");
   const validatorsResponse = await stub.fetch("https://dummy.com/validators");
 
-  console.log(`📥 Response status: ${validatorsResponse.status}`);
+  console.log(`[INFO] Response status: ${validatorsResponse.status}`);
 
   const validatorsData = await validatorsResponse.json() as {
     success: boolean;
@@ -51,17 +51,17 @@ export const sendReqToValidators = async (env: Env, ctx: ExecutionContext) => {
     validators: Array<{ validatorId: string; pubKey: string; ip: string }>;
   };
 
-  console.log(`📊 Validators response data:`, JSON.stringify(validatorsData, null, 2));
+  console.log(`[INFO] Validators response data:`, JSON.stringify(validatorsData, null, 2));
 
   if (!validatorsData.success || validatorsData.count === 0) {
-    console.log("⚠️ No validators available for checking websites");
-    console.log(`   - Success: ${validatorsData.success}`);
-    console.log(`   - Count: ${validatorsData.count}`);
+    console.log("[WARNING] No validators available for checking websites");
+    console.log(`[INFO] Success: ${validatorsData.success}`);
+    console.log(`[INFO] Count: ${validatorsData.count}`);
     return;
   }
 
-  console.log(`✅ Found ${validatorsData.count} active validators`);
-  console.log(`   Validators:`, validatorsData.validators.map(v => ({
+  console.log(`[SUCCESS] Found ${validatorsData.count} active validators`);
+  console.log(`[INFO] Validators:`, validatorsData.validators.map(v => ({
     id: v.validatorId,
     pubKey: v.pubKey.slice(0, 10) + '...'
   })));
@@ -78,7 +78,7 @@ export const sendReqToValidators = async (env: Env, ctx: ExecutionContext) => {
     );
 
   console.log(
-    `📋 Found ${websitesDueForCheck.length} websites due for checking`
+    `[INFO] Found ${websitesDueForCheck.length} websites due for checking`
   );
 
   for (const website of websitesDueForCheck) {
@@ -86,7 +86,7 @@ export const sendReqToValidators = async (env: Env, ctx: ExecutionContext) => {
     const selectedValidators = selectRandomValidators(validatorsData.validators, 3);
 
     console.log(
-      `✅ Selected ${selectedValidators.length} validators for website ${website.id} (${website.url})`
+      `[SUCCESS] Selected ${selectedValidators.length} validators for website ${website.id} (${website.url})`
     );
 
     // Send validation requests to all selected validators (fire-and-forget)
@@ -118,10 +118,10 @@ export const sendReqToValidators = async (env: Env, ctx: ExecutionContext) => {
           }),
         });
 
-        console.log(`📤 Sent validation request to validator ${validator.validatorId} for ${website.url}`);
+        console.log(`[INFO] Sent validation request to validator ${validator.validatorId} for ${website.url}`);
 
       } catch (error) {
-        console.error(`Error sending validation request to ${validator.validatorId}:`, error);
+        console.error(`[ERROR] Error sending validation request to ${validator.validatorId}:`, error);
       }
     }
 
@@ -136,9 +136,9 @@ export const sendReqToValidators = async (env: Env, ctx: ExecutionContext) => {
       .where(eq(websites.id, website.id));
 
     console.log(
-      `⏰ Updated next check time for website ${website.id} (${website.url}) to ${nextCheckTime.toISOString()}`
+      `[INFO] Updated next check time for website ${website.id} (${website.url}) to ${nextCheckTime.toISOString()}`
     );
   }
 
-  console.log(`✅ Cron job completed - sent validation requests for ${websitesDueForCheck.length} websites`);
+  console.log(`[SUCCESS] Cron job completed - sent validation requests for ${websitesDueForCheck.length} websites`);
 };
