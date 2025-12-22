@@ -2,7 +2,7 @@
 
 ![Statik Banner](images/banner.jpeg)
 
-**Decentralized Uptime Monitoring Network on U2U**
+**Decentralized Uptime Monitoring Network on Celo**
 
 Statik is a permissionless DePIN (Decentralized Physical Infrastructure Network) that transforms website reliability monitoring into a global, trustless service. By incentivizing node operators to verify website uptime from diverse locations, Statik delivers sub-second validation results while disrupting a $2B+ market dominated by centralized providers.
 
@@ -20,12 +20,12 @@ Statik solves these problems by creating a decentralized network where:
 - **Website Owners** pay affordable rates for distributed, reliable monitoring
 - **Smart Contracts** handle staking, payments, and reward distribution trustlessly
 
-## Why U2U?
+## Why Celo?
 
-U2U's DAG-based architecture is essential for Statik's real-time requirements:
+Celo's proof-of-stake architecture is essential for Statik's real-time requirements:
 
 - **Fast Finality** - Instant transaction confirmation for validator assignments
-- **Low Gas Fees** - Economic viability for micro-transactions (10 U2U per validation)
+- **Low Gas Fees** - Economic viability for micro-transactions (10 CELO per validation)
 - **EVM Compatibility** - Seamless integration with existing Web3 wallets and tools
 
 ## Architecture
@@ -39,7 +39,7 @@ U2U's DAG-based architecture is essential for Statik's real-time requirements:
          │                      │                         │
          ▼                      ▼                         ▼
 ┌─────────────────────────────────────────────────────────────────┐
-│                    U2U Blockchain Network                       │
+│                    Celo Blockchain Network                      │
 │  Smart Contracts: Staking, Rewards, Validator Registry          │
 └─────────────────────────────────────────────────────────────────┘
 ```
@@ -48,7 +48,7 @@ U2U's DAG-based architecture is essential for Statik's real-time requirements:
 
 #### 1. Smart Contracts (On-Chain)
 
-- **Validator Registry** - Requires 1000 U2U stake to participate, slashing for misbehavior
+- **Validator Registry** - Requires 1000 CELO stake to participate, slashing for misbehavior
 - **Credit System** - Website owners purchase monitoring credits
 - **Rewards Pool** - Distributes earnings to validators based on performance
 - **Audit Log** - Immutable record of monitored URLs and check intervals
@@ -88,7 +88,7 @@ U2U's DAG-based architecture is essential for Statik's real-time requirements:
 - Real-time uptime monitoring from distributed global nodes
 - Instant downtime alerts via webhooks/email
 - Blockchain-verified SLA proof
-- Affordable pricing: 10 U2U credits per validation
+- Affordable pricing: 10 CELO credits per validation
 - Geographic diversity for accurate status detection
 
 ### For Validators
@@ -101,8 +101,8 @@ U2U's DAG-based architecture is essential for Statik's real-time requirements:
 
 ## Economic Model
 
-- **Users Pay**: 10 U2U credits per validation
-- **Validator Earns**: 9.5 U2U tokens per successful check
+- **Users Pay**: 10 CELO credits per validation
+- **Validator Earns**: 9.5 CELO tokens per successful check
 - **Platform Fee**: 5% directed to treasury for development
 - **Validation Model**: Each check performed by 3 randomly selected validators using the Fisher-Yates shuffle algorithm for unbiased, fair distribution
 - **Consensus**: Results aggregated with weighted voting (validators with higher stake and uptime history carry more weight)
@@ -133,23 +133,23 @@ U2U's DAG-based architecture is essential for Statik's real-time requirements:
 
 ### Blockchain
 
-- **Network**: U2U Mainnet
+- **Network**: Celo Mainnet
 - **Tools**: Viem for contract interactions
 - **Standards**: ERC20-compatible credit system
-- **Contract Address**: `0x9Fe9004AecD7eE38342EfAfA3feBaF3AE3eDE0A6`
-- **Explorer**: [View on U2U Scan](https://u2uscan.xyz/address/0x9Fe9004AecD7eE38342EfAfA3feBaF3AE3eDE0A6)
+- **Contract Address**: `0xC9191ceD91A36881e895cA7EA27E9efFa0f8351F`
+- **Explorer**: [View on Celo Blockscout](https://celo.blockscout.com/address/0xC9191ceD91A36881e895cA7EA27E9efFa0f8351F)
 
 ## Smart Contract Deployment
 
-The Statik smart contract is deployed on the U2U Mainnet:
+The Statik smart contract is deployed on the Celo Mainnet:
 
-- **Contract Address**: `0x9Fe9004AecD7eE38342EfAfA3feBaF3AE3eDE0A6`
-- **Network**: U2U Mainnet
-- **Explorer**: [View on U2U Scan](https://u2uscan.xyz/address/0x9Fe9004AecD7eE38342EfAfA3feBaF3AE3eDE0A6)
+- **Contract Address**: `0xC9191ceD91A36881e895cA7EA27E9efFa0f8351F`
+- **Network**: Celo Mainnet
+- **Explorer**: [View on Celo Blockscout](https://celo.blockscout.com/address/0xC9191ceD91A36881e895cA7EA27E9efFa0f8351F)
 
 The contract handles:
 
-- Validator registry and staking (1000 U2U stake requirement)
+- Validator registry and staking (1000 CELO stake requirement)
 - Credit system for website monitoring
 - Reward distribution to validators
 - Slashing mechanism for misbehavior
@@ -199,7 +199,7 @@ statik/
 - **Bun** 1.2+ (for validator development)
 - **Docker** (for validator deployment)
 - **Cloudflare Account** (for hub deployment)
-- **U2U Wallet** with tokens for staking/monitoring
+- **Celo Wallet** with tokens for staking/monitoring
 
 ### 1. Hub Server Setup
 
@@ -385,16 +385,16 @@ bun run dev
 - ✅ Implemented reward vesting schedules
 - ✅ Passed security audit checklist (reentrancy, overflow protection)
 
-### Week 2: U2U Integration
+### Week 2: Celo Integration
 
-- ✅ Migrated to U2U Mainnet
-- ✅ Integrated off-chain credits with U2U token payments
-- ✅ Integrated U2U wallet via Thirdweb
+- ✅ Migrated to Celo Mainnet
+- ✅ Integrated off-chain credits with Celo token payments
+- ✅ Integrated Celo wallet via Thirdweb
 - ✅ Implemented on-chain validator registry reads
 
 ### Week 3: Production Launch
 
-- ✅ Deployed all contracts to U2U Mainnet
+- ✅ Deployed all contracts to Celo Mainnet
 - ✅ Onboarded 3 beta users monitoring 12 production websites
 - ✅ Distributed 25,000 U2U tokens in validator rewards
 
@@ -410,7 +410,7 @@ bun run dev
 - **15 Active Validators** across US, EU, and APAC regions
 - **12 Websites Monitored** with 1-5 minute check intervals
 - **50K+ Validations** completed successfully
-- **99.8% Network Uptime** (demonstrating U2U DAG speed advantage)
+- **99.8% Network Uptime** (demonstrating Celo speed advantage)
 - **<500ms Average Response Time** from validation request to result
 
 ![Latency Monitoring Chart](images/latency-chart.jpeg)
@@ -460,7 +460,7 @@ bun run dev
 ### Q1 2025
 
 - [ ] Launch mainnet with 100+ validators
-- [ ] Integrate with major U2U DeFi protocols
+- [ ] Integrate with major Celo DeFi protocols
 - [ ] Multi-chain expansion (Ethereum, Polygon)
 - [ ] Advanced alerting (Slack, Discord, PagerDuty)
 
@@ -512,13 +512,13 @@ This project is open source and available under the [MIT License](LICENSE).
 - **Validator Dashboard**: https://validator.statikuptime.xyz/
 - **Documentation**: [hub/API_EXAMPLES.md](hub/API_EXAMPLES.md)
 - **Validator Guide**: [validator/README.md](validator/README.md)
-- **U2U Network**: https://u2u.xyz
+- **Celo Network**: https://celo.org
 - **Support**: [GitHub Issues](https://github.com/snehendu098/statik-uptime/issues)
 
 ## Acknowledgments
 
-- Built for the U2U Hackathon 2025
-- Powered by U2U's DAG-based blockchain
+- Originally built for the U2U Hackathon 2025, now deployed on Celo
+- Powered by Celo's proof-of-stake blockchain
 - Deployed on Cloudflare Workers with Durable Objects
 - UI components by Radix UI and Tailwind CSS
 

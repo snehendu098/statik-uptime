@@ -4,11 +4,11 @@ The hub server is the coordination layer for the Statik network, built on Cloudf
 
 ## Smart Contract
 
-The Statik smart contract is deployed on the U2U Mainnet:
+The Statik smart contract is deployed on the Celo Mainnet:
 
-- **Contract Address**: `0x9Fe9004AecD7eE38342EfAfA3feBaF3AE3eDE0A6`
-- **Network**: U2U Mainnet
-- **Explorer**: [View on U2U Scan](https://u2uscan.xyz/address/0x9Fe9004AecD7eE38342EfAfA3feBaF3AE3eDE0A6)
+- **Contract Address**: `0xC9191ceD91A36881e895cA7EA27E9efFa0f8351F`
+- **Network**: Celo Mainnet
+- **Explorer**: [View on Celo Blockscout](https://celo.blockscout.com/address/0xC9191ceD91A36881e895cA7EA27E9efFa0f8351F)
 
 ## Features
 

@@ -4,13 +4,13 @@ Run validators to earn rewards by monitoring website uptime and performance.
 
 ## Smart Contract
 
-The Statik smart contract is deployed on the U2U Mainnet:
+The Statik smart contract is deployed on the Celo Mainnet:
 
-- **Contract Address**: `0x9Fe9004AecD7eE38342EfAfA3feBaF3AE3eDE0A6`
-- **Network**: U2U Mainnet
-- **Explorer**: [View on U2U Scan](https://u2uscan.xyz/address/0x9Fe9004AecD7eE38342EfAfA3feBaF3AE3eDE0A6)
+- **Contract Address**: `0xC9191ceD91A36881e895cA7EA27E9efFa0f8351F`
+- **Network**: Celo Mainnet
+- **Explorer**: [View on Celo Blockscout](https://celo.blockscout.com/address/0xC9191ceD91A36881e895cA7EA27E9efFa0f8351F)
 
-Validators interact with this contract for staking (1000 U2U required) and earning rewards (9.5 U2U per successful check).
+Validators interact with this contract for staking (1000 CELO required) and earning rewards (9.5 CELO per successful check).
 
 ## 🚀 Quick Start (Recommended)
 

@@ -1,6 +1,7 @@
 // API utility for hub server communication
 
-const HUB_API_URL = process.env.NEXT_PUBLIC_HUB_API_URL || "http://localhost:8787";
+const HUB_API_URL =
+  process.env.NEXT_PUBLIC_HUB_API_URL || "http://localhost:8787";
 
 export interface CreateWebsiteRequest {
   pubKey: string;
@@ -88,7 +89,7 @@ export interface GetWebsiteStatsResponse {
  * Create a new website monitor
  */
 export async function createWebsite(
-  data: CreateWebsiteRequest
+  data: CreateWebsiteRequest,
 ): Promise<CreateWebsiteResponse> {
   try {
     const response = await fetch(`${HUB_API_URL}/website`, {
@@ -114,7 +115,7 @@ export async function createWebsite(
  * Get all websites for a user by public key
  */
 export async function getWebsitesByPubKey(
-  pubKey: string
+  pubKey: string,
 ): Promise<GetWebsitesResponse> {
   try {
     const response = await fetch(`${HUB_API_URL}/websites/${pubKey}`, {
@@ -139,7 +140,7 @@ export async function getWebsitesByPubKey(
  * Get detailed stats for a specific website
  */
 export async function getWebsiteStats(
-  websiteId: string
+  websiteId: string,
 ): Promise<GetWebsiteStatsResponse> {
   try {
     const response = await fetch(`${HUB_API_URL}/website/${websiteId}`, {
@@ -184,7 +185,7 @@ export interface UpdateCreditsResponse {
  * Update user credits after a successful transaction
  */
 export async function updateCredits(
-  data: UpdateCreditsRequest
+  data: UpdateCreditsRequest,
 ): Promise<UpdateCreditsResponse> {
   try {
     const response = await fetch(`${HUB_API_URL}/credits`, {
